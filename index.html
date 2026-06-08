@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据结构算法可视化 — 目录</title>
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --card-bg: #ffffff;
+            --primary: #4a90d9;
+            --text: #2c3e50;
+            --text-light: #636e72;
+            --border: #e0e4e8;
+            --shadow: 0 2px 12px rgba(0,0,0,0.08);
+            --radius: 10px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Header */
+        .header {
+            width: 100%;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: #fff;
+            padding: 28px 24px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+        .header .subtitle {
+            font-size: 0.9rem;
+            opacity: 0.7;
+            margin-top: 6px;
+        }
+
+        /* Main */
+        .main {
+            width: 100%;
+            max-width: 800px;
+            padding: 32px 20px;
+        }
+
+        /* Intro */
+        .intro {
+            text-align: center;
+            margin-bottom: 32px;
+            color: var(--text-light);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        /* Catalog */
+        .catalog {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .catalog-item {
+            display: flex;
+            align-items: center;
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            padding: 20px 24px;
+            text-decoration: none;
+            color: var(--text);
+            transition: all 0.25s ease;
+            gap: 18px;
+        }
+        .catalog-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+            border-color: var(--primary);
+        }
+        .catalog-item:active {
+            transform: scale(0.99);
+        }
+
+        .catalog-num {
+            flex-shrink: 0;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4a90d9, #357abd);
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .catalog-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .catalog-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .catalog-desc {
+            font-size: 0.82rem;
+            color: var(--text-light);
+            line-height: 1.4;
+        }
+
+        .catalog-arrow {
+            flex-shrink: 0;
+            font-size: 1.4rem;
+            color: #b0b8c1;
+            transition: transform 0.25s, color 0.25s;
+        }
+        .catalog-item:hover .catalog-arrow {
+            transform: translateX(4px);
+            color: var(--primary);
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: auto;
+            padding: 16px;
+            text-align: center;
+            color: #b0b8c1;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>📚 数据结构算法可视化</h1>
+    <div class="subtitle">交互式演示，直观理解数据结构与算法</div>
+</div>
+
+<div class="main">
+    <p class="intro">
+        点击下方条目进入对应的可视化演示页面。
+    </p>
+
+    <div class="catalog">
+        <!-- 条目 1 -->
+        <a class="catalog-item" href="bst-visualizer.html">
+            <span class="catalog-num">1</span>
+            <div class="catalog-info">
+                <div class="catalog-title">二叉排序树（BST）可视化</div>
+                <div class="catalog-desc">动态演示 BST 节点的插入与删除全过程，支持先序/中序/后序遍历</div>
+            </div>
+            <span class="catalog-arrow">→</span>
+        </a>
+        <!-- 条目 2 -->
+        <a class="catalog-item" href="dijkstra-visualizer.html">
+            <span class="catalog-num">2</span>
+            <div class="catalog-info">
+                <div class="catalog-title">Dijkstra 最短路径算法可视化</div>
+                <div class="catalog-desc">交互式构建加权图，逐步运行动画演示 Dijkstra 最短路径搜索过程</div>
+            </div>
+            <span class="catalog-arrow">→</span>
+        </a>
+        <!-- 条目 3 -->
+        <a class="catalog-item" href="kmp-visualizer.html">
+            <span class="catalog-num">3</span>
+            <div class="catalog-info">
+                <div class="catalog-title">KMP 字符串匹配算法可视化</div>
+                <div class="catalog-desc">构建前缀表，逐字符匹配，失配时利用 LPS 跳转，直观理解 KMP 核心思想</div>
+            </div>
+            <span class="catalog-arrow">→</span>
+        </a>
+        <!-- 条目 4 -->
+        <a class="catalog-item" href="hanoi-visualizer.html">
+            <span class="catalog-num">4</span>
+            <div class="catalog-info">
+                <div class="catalog-title">汉诺塔递归算法可视化</div>
+                <div class="catalog-desc">经典递归问题，盘子从 A 柱移动到 C 柱，动画演示每一步的提起 → 横移 → 放下</div>
+            </div>
+            <span class="catalog-arrow">→</span>
+        </a>
+        <!-- 后续条目在此添加 -->
+    </div>
+</div>
+
+<div class="footer">
+    Data Structure &amp; Algorithm Visualizer
+</div>
+
+<script>
+// 用固定窗口名打开，若已有同名窗口则复用（不重复开新标签页）
+// 每个页面使用独立的窗口名
+const WINDOW_NAMES = {
+    'bst-visualizer.html':      'bst_visualizer_window',
+    'dijkstra-visualizer.html': 'dijkstra_visualizer_window',
+    'kmp-visualizer.html':      'kmp_visualizer_window',
+    'hanoi-visualizer.html':    'hanoi_visualizer_window',
+};
+
+document.querySelectorAll('.catalog-item').forEach(item => {
+    item.addEventListener('click', function(e) {
+        e.preventDefault();
+        const url = this.getAttribute('href');
+        const winName = WINDOW_NAMES[url] || url.replace(/[^a-zA-Z0-9]/g, '_');
+        const win = window.open(url, winName);
+        if (win) win.focus();
+    });
+});
+</script>
+
+</body>
+</html>

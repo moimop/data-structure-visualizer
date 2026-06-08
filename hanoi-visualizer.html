@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>汉诺塔递归算法可视化</title>
+    <style>
+        :root {
+            --bg: #f0f4f8; --card-bg: #ffffff;
+            --primary: #4a90d9; --danger: #e74c3c; --success: #27ae60;
+            --warning: #f39c12; --text: #2c3e50; --text-light: #636e72;
+            --border: #e0e4e8; --shadow: 0 2px 12px rgba(0,0,0,0.08); --radius: 10px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg); color: var(--text); min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .header {
+            width: 100%; background: linear-gradient(135deg, #2c1a4a 0%, #5c3d8f 100%);
+            color: #fff; padding: 16px 24px; text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .header h1 { font-size: 1.6rem; font-weight: 600; letter-spacing: 1px; }
+        .header .subtitle { font-size: 0.85rem; opacity: 0.75; margin-top: 2px; }
+
+        .main-container {
+            display: flex; flex: 1; width: 100%; max-width: 1400px;
+            gap: 16px; padding: 16px; height: calc(100vh - 90px);
+        }
+        .sidebar {
+            width: 280px; min-width: 280px;
+            display: flex; flex-direction: column; gap: 12px; overflow-y: auto;
+        }
+        .card {
+            background: var(--card-bg); border-radius: var(--radius);
+            box-shadow: var(--shadow); padding: 14px 16px; border: 1px solid var(--border);
+        }
+        .card-title {
+            font-size: 0.88rem; font-weight: 700; color: var(--text);
+            margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--primary); padding-bottom: 5px;
+            display: inline-block;
+        }
+        .btn {
+            padding: 9px 16px; border: none; border-radius: 8px;
+            font-size: 0.85rem; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; letter-spacing: 0.5px; white-space: nowrap;
+        }
+        .btn:active { transform: scale(0.96); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+        .btn-run { background: var(--success); color: #fff; width: 100%; }
+        .btn-run:hover:not(:disabled) { background: #219a52; }
+        .btn-step { background: var(--primary); color: #fff; width: 100%; margin-top: 6px; }
+        .btn-step:hover:not(:disabled) { background: #357abd; }
+        .btn-reset { background: #636e72; color: #fff; width: 100%; margin-top: 6px; }
+        .btn-reset:hover:not(:disabled) { background: #4a5559; }
+
+        .disk-input-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .disk-input-row label { font-size: 0.85rem; font-weight: 600; color: var(--text-light); }
+        .disk-input-row input {
+            width: 60px; padding: 7px 10px; border: 2px solid var(--border);
+            border-radius: 6px; font-size: 0.95rem; text-align: center; outline: none;
+        }
+        .disk-input-row input:focus { border-color: var(--primary); }
+
+        .speed-group { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+        .speed-group label { font-size: 0.82rem; font-weight: 600; color: var(--text-light); white-space: nowrap; }
+        .speed-group input[type="range"] { flex: 1; accent-color: var(--primary); }
+        .speed-group .speed-val { font-size: 0.78rem; color: var(--text-light); min-width: 36px; text-align: center; }
+
+        .info-row { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-light); padding: 3px 0; }
+        .info-row span:last-child { font-weight: 700; color: var(--text); }
+
+        /* Log */
+        .status-log { max-height: 200px; overflow-y: auto; font-size: 0.8rem; color: var(--text-light); line-height: 1.6; }
+        .status-log .log-entry {
+            padding: 3px 8px; border-left: 3px solid transparent; margin-bottom: 2px; animation: fadeIn 0.3s;
+        }
+        .status-log .log-entry.info { border-left-color: var(--primary); background: #f5f8fc; }
+        .status-log .log-entry.success { border-left-color: var(--success); background: #f0faf4; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: translateX(0); } }
+        .btn-clear-log {
+            background: none; border: 1px solid var(--border); border-radius: 6px;
+            cursor: pointer; font-size: 0.85rem; padding: 2px 6px; transition: background 0.2s; line-height: 1;
+        }
+        .btn-clear-log:hover { background: #fde8e8; border-color: var(--danger); }
+
+        /* Visualization */
+        .viz-container {
+            flex: 1; background: #fdfdfd; border-radius: var(--radius);
+            box-shadow: var(--shadow); border: 1px solid var(--border);
+            position: relative; overflow: hidden; min-height: 400px;
+        }
+        .viz-inner { position: relative; width: 100%; height: 100%; }
+
+        .peg-base {
+            position: absolute; bottom: 30px; left: 10%; right: 10%; height: 8px;
+            background: linear-gradient(to bottom, #8d6e63, #5d4037);
+            border-radius: 4px;
+        }
+        .peg-pole {
+            position: absolute; bottom: 38px; width: 8px;
+            background: linear-gradient(to right, #a1887f, #6d4c41, #a1887f);
+            border-radius: 4px 4px 0 0; transform: translateX(-50%);
+        }
+        .peg-label {
+            position: absolute; bottom: 4px; font-size: 0.85rem; font-weight: 700;
+            color: #5d4037; transform: translateX(-50%); text-align: center; width: 30px;
+        }
+        .disk {
+            position: absolute; height: 28px; border-radius: 8px;
+            transform: translateX(-50%);
+            transition: left 0.35s ease, bottom 0.35s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.72rem; font-weight: 700; color: rgba(0,0,0,0.5);
+        }
+        .disk.lifting { transition: bottom 0.25s ease-in; }
+        .disk.sliding { transition: left 0.4s ease; }
+        .disk.dropping { transition: bottom 0.25s ease-out; }
+
+        @media (max-width: 900px) {
+            .main-container { flex-direction: column; height: auto; }
+            .sidebar { width: 100%; min-width: auto; }
+            .viz-container { min-height: 350px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>🗼 汉诺塔递归算法可视化</h1>
+    <div class="subtitle">经典递归问题 — 将 N 个盘子从 A 柱移动到 C 柱</div>
+</div>
+
+<div class="main-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="card">
+            <div class="card-title">⚙️ 控制</div>
+            <div class="disk-input-row">
+                <label>盘子数:</label>
+                <input type="number" id="diskCount" value="3" min="1" max="10">
+                <button class="btn" style="background:var(--primary);color:#fff;padding:7px 12px;font-size:0.8rem;" id="btnSetup">设置</button>
+            </div>
+            <button class="btn btn-run" id="btnRun" disabled>▶ 自动播放</button>
+            <button class="btn btn-step" id="btnStep" disabled>⏭ 单步执行</button>
+            <button class="btn btn-reset" id="btnReset">🔄 重置</button>
+            <div class="speed-group">
+                <label>🐢 速度</label>
+                <input type="range" id="speedSlider" min="1" max="5" value="3" step="1">
+                <span class="speed-val" id="speedLabel">中速</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">📊 状态</div>
+            <div class="info-row"><span>盘子总数</span><span id="infoDisks">—</span></div>
+            <div class="info-row"><span>总步数</span><span id="infoTotal">2ⁿ−1</span></div>
+            <div class="info-row"><span>当前步数</span><span id="infoStep">0</span></div>
+        </div>
+
+        <div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span class="card-title" style="margin-bottom:0;border-bottom:none;padding-bottom:0;">📋 移动日志</span>
+                <button class="btn-clear-log" id="btnClearLog" title="清除日志">🗑️</button>
+            </div>
+            <div class="status-log" id="statusLog" style="margin-top:8px;">
+                <div style="color:#b0b8c1;">设置盘子数后开始…</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Visual -->
+    <div class="viz-container" id="vizContainer">
+        <div class="viz-inner" id="vizInner"></div>
+    </div>
+</div>
+
+<script>
+// ===========================
+// 汉诺塔引擎
+// ===========================
+class HanoiEngine {
+    // 生成所有移动步骤
+    static generateMoves(n, from = 0, to = 2, aux = 1) {
+        const moves = [];
+        HanoiEngine._hanoi(n, from, to, aux, moves);
+        return moves;
+    }
+    static _hanoi(n, from, to, aux, moves) {
+        if (n === 0) return;
+        HanoiEngine._hanoi(n - 1, from, aux, to, moves);
+        moves.push({ disk: n, from, to });
+        HanoiEngine._hanoi(n - 1, aux, to, from, moves);
+    }
+}
+
+// ===========================
+// 可视化渲染
+// ===========================
+class HanoiRenderer {
+    constructor(container) {
+        this.container = container;
+        this.DISK_H = 28;
+        this.DISK_MIN_W = 30;
+        this.DISK_MAX_W_RATIO = 0.7; // max disk width = 70% of peg spacing
+        this.pegs = [[], [], []]; // disk numbers, largest first (bottom)
+        this.diskEls = new Map(); // diskNum -> DOM element
+        this.n = 0;
+        this.pegCenters = [];
+    }
+
+    // 计算布局坐标
+    layout() {
+        const rect = this.container.getBoundingClientRect();
+        const w = rect.width;
+        const h = rect.height;
+        const pegH = h - 80;
+        // 三个柱子等距分布
+        const cx1 = w * 0.2;
+        const cx2 = w * 0.5;
+        const cx3 = w * 0.8;
+        this.pegCenters = [cx1, cx2, cx3];
+        this.pegH = pegH;
+        this.baseY = 38;
+        this.poleBottom = 46;
+        this.poleTop = pegH;
+        this.maxDiskW = (cx2 - cx1) * this.DISK_MAX_W_RATIO;
+    }
+
+    setup(n) {
+        this.n = n;
+        this.pegs = [[], [], []];
+        // 所有盘子在 A 柱 (peg 0)
+        for (let i = n; i >= 1; i--) {
+            this.pegs[0].push(i);
+        }
+        this.layout();
+        this.container.innerHTML = '';
+
+        // Base
+        const base = document.createElement('div');
+        base.className = 'peg-base';
+        base.style.left = this.pegCenters[0] - (this.pegCenters[2] - this.pegCenters[0]) * 0.15 + 'px';
+        base.style.width = (this.pegCenters[2] - this.pegCenters[0]) * 1.3 + 'px';
+        this.container.appendChild(base);
+
+        // Poles
+        const labels = ['A', 'B', 'C'];
+        for (let p = 0; p < 3; p++) {
+            const pole = document.createElement('div');
+            pole.className = 'peg-pole';
+            pole.style.left = this.pegCenters[p] + 'px';
+            pole.style.height = this.poleTop - this.poleBottom + 'px';
+            this.container.appendChild(pole);
+
+            const label = document.createElement('div');
+            label.className = 'peg-label';
+            label.style.left = this.pegCenters[p] + 'px';
+            label.textContent = labels[p];
+            this.container.appendChild(label);
+        }
+
+        // Disks
+        this.diskEls.clear();
+        for (let i = n; i >= 1; i--) {
+            const el = document.createElement('div');
+            el.className = 'disk';
+            el.textContent = i;
+            const diskW = this.diskWidth(i);
+            el.style.width = diskW + 'px';
+            el.style.height = this.DISK_H + 'px';
+            el.style.backgroundColor = this.diskColor(i, n);
+            this.diskEls.set(i, el);
+            this.container.appendChild(el);
+        }
+
+        // Position all disks
+        this._positionAllDisks();
+    }
+
+    diskWidth(diskNum) {
+        return this.DISK_MIN_W + (diskNum / this.n) * (this.maxDiskW - this.DISK_MIN_W);
+    }
+
+    diskColor(i, n) {
+        const hue = ((i - 1) / Math.max(n - 1, 1)) * 300;
+        return `hsl(${hue}, 65%, 55%)`;
+    }
+
+    _diskBottom(stackIdx) {
+        return this.poleBottom + stackIdx * (this.DISK_H + 3);
+    }
+
+    _positionAllDisks() {
+        for (let p = 0; p < 3; p++) {
+            for (let s = 0; s < this.pegs[p].length; s++) {
+                const d = this.pegs[p][s];
+                const el = this.diskEls.get(d);
+                if (el) {
+                    el.style.left = this.pegCenters[p] + 'px';
+                    el.style.bottom = this._diskBottom(s) + 'px';
+                }
+            }
+        }
+    }
+
+    async animateMove(move, delay) {
+        const { disk, from, to } = move;
+        const el = this.diskEls.get(disk);
+        if (!el) return;
+
+        // 当前在 from 柱的堆叠位置
+        const fromIdx = this.pegs[from].length - 1; // top of from peg
+
+        // 1. 提起
+        el.classList.add('lifting');
+        el.style.bottom = (this.poleTop - 20) + 'px';
+        await this._sleep(delay * 0.3);
+
+        // 2. 横移
+        el.classList.remove('lifting');
+        el.classList.add('sliding');
+        el.style.left = this.pegCenters[to] + 'px';
+        await this._sleep(delay * 0.45);
+
+        // 3. 放下
+        el.classList.remove('sliding');
+        el.classList.add('dropping');
+        const toIdx = this.pegs[to].length; // new position on destination
+        el.style.bottom = this._diskBottom(toIdx) + 'px';
+        await this._sleep(delay * 0.3);
+        el.classList.remove('dropping');
+
+        // 更新数据
+        this.pegs[from].pop();
+        this.pegs[to].push(disk);
+    }
+
+    _sleep(ms) {
+        return new Promise(r => setTimeout(r, ms));
+    }
+}
+
+// ===========================
+// 控制器
+// ===========================
+class HanoiController {
+    constructor() {
+        this.n = 0;
+        this.moves = [];
+        this.curStep = 0;
+        this.animating = false;
+        this.rend = new HanoiRenderer(document.getElementById('vizInner'));
+
+        this.diskInput = document.getElementById('diskCount');
+        this.btnRun = document.getElementById('btnRun');
+        this.btnStep = document.getElementById('btnStep');
+        this.statusLog = document.getElementById('statusLog');
+        this.speedSlider = document.getElementById('speedSlider');
+        this.speedLabel = document.getElementById('speedLabel');
+        this.infoDisks = document.getElementById('infoDisks');
+        this.infoTotal = document.getElementById('infoTotal');
+        this.infoStep = document.getElementById('infoStep');
+
+        this.initEvents();
+        this.loadFromStorage();
+    }
+
+    get delay() { return [1000, 700, 500, 350, 200][this.speedSlider.value - 1] || 500; }
+    get speedText() { return ['很慢','慢','中速','快','极快'][this.speedSlider.value - 1] || '中速'; }
+
+    log(msg, type = 'info') {
+        const e = document.createElement('div');
+        e.className = `log-entry ${type}`; e.textContent = msg;
+        this.statusLog.appendChild(e);
+        this.statusLog.scrollTop = this.statusLog.scrollHeight;
+        while (this.statusLog.children.length > 80) this.statusLog.removeChild(this.statusLog.firstChild);
+    }
+
+    initEvents() {
+        document.getElementById('btnSetup').addEventListener('click', () => this.handleSetup());
+        this.btnRun.addEventListener('click', () => this.handleRun());
+        this.btnStep.addEventListener('click', () => this.handleStep());
+        document.getElementById('btnReset').addEventListener('click', () => this.handleReset());
+        document.getElementById('btnClearLog').addEventListener('click', () => {
+            this.statusLog.innerHTML = '<div style="color:#b0b8c1;">日志已清除</div>';
+        });
+        this.speedSlider.addEventListener('input', () => { this.speedLabel.textContent = this.speedText; });
+        this.diskInput.addEventListener('keydown', e => { if (e.key === 'Enter') this.handleSetup(); });
+        window.addEventListener('beforeunload', () => this.saveToStorage());
+    }
+
+    saveToStorage() {
+        localStorage.setItem('hanoi_disks', this.n);
+    }
+
+    loadFromStorage() {
+        const saved = localStorage.getItem('hanoi_disks');
+        if (saved !== null) {
+            const n = parseInt(saved);
+            if (n >= 1 && n <= 10) {
+                this.diskInput.value = n;
+                this.doSetup(n);
+            }
+        }
+    }
+
+    handleSetup() {
+        if (this.animating) return;
+        const n = parseInt(this.diskInput.value);
+        if (isNaN(n) || n < 1 || n > 10) {
+            this.log('⚠️ 请输入 1–10 之间的盘子数', 'warn');
+            return;
+        }
+        this.doSetup(n);
+        this.log(`🗼 已设置 ${n} 个盘子，共需 ${this.moves.length} 步`, 'info');
+        this.saveToStorage();
+    }
+
+    doSetup(n) {
+        this.n = n;
+        this.moves = HanoiEngine.generateMoves(n);
+        this.curStep = 0;
+        this.rend.setup(n);
+        this.infoDisks.textContent = n;
+        this.infoTotal.textContent = this.moves.length + `（2^${n} − 1）`;
+        this.infoStep.textContent = `0 / ${this.moves.length}`;
+        this.btnRun.disabled = this.moves.length === 0;
+        this.btnStep.disabled = this.moves.length === 0;
+    }
+
+    async handleRun() {
+        if (this.animating) return;
+        if (this.curStep >= this.moves.length) return;
+
+        this.animating = true;
+        this.btnRun.disabled = true;
+        this.btnStep.disabled = true;
+        document.getElementById('btnSetup').disabled = true;
+
+        for (let k = this.curStep; k < this.moves.length; k++) {
+            const move = this.moves[k];
+            const pegNames = ['A', 'B', 'C'];
+            this.curStep = k;
+
+            this.log(`🔹 第 ${k + 1} 步: 将盘子 ${move.disk} 从 ${pegNames[move.from]} → ${pegNames[move.to]}`, 'info');
+            this.infoStep.textContent = `${k + 1} / ${this.moves.length}`;
+
+            await this.rend.animateMove(move, this.delay);
+        }
+
+        this.infoStep.textContent = `${this.moves.length} / ${this.moves.length}`;
+        this.log(`✅ 完成！共 ${this.moves.length} 步`, 'success');
+
+        this.animating = false;
+        this.btnRun.disabled = true;
+        this.btnStep.disabled = true;
+        document.getElementById('btnSetup').disabled = false;
+    }
+
+    async handleStep() {
+        if (this.animating || this.curStep >= this.moves.length) return;
+
+        this.animating = true;
+        this.btnRun.disabled = true;
+        this.btnStep.disabled = true;
+        document.getElementById('btnSetup').disabled = true;
+
+        const move = this.moves[this.curStep];
+        const pegNames = ['A', 'B', 'C'];
+
+        this.log(`🔹 第 ${this.curStep + 1} 步: 将盘子 ${move.disk} 从 ${pegNames[move.from]} → ${pegNames[move.to]}`, 'info');
+        this.infoStep.textContent = `${this.curStep + 1} / ${this.moves.length}`;
+
+        await this.rend.animateMove(move, this.delay);
+
+        this.curStep++;
+        this.infoStep.textContent = `${this.curStep} / ${this.moves.length}`;
+
+        if (this.curStep >= this.moves.length) {
+            this.log(`✅ 完成！共 ${this.moves.length} 步`, 'success');
+            this.btnRun.disabled = true;
+            this.btnStep.disabled = true;
+        }
+
+        this.animating = false;
+        document.getElementById('btnSetup').disabled = false;
+        if (this.curStep < this.moves.length) {
+            this.btnRun.disabled = false;
+            this.btnStep.disabled = false;
+        }
+    }
+
+    handleReset() {
+        if (this.animating) return;
+        this.n = 0;
+        this.moves = [];
+        this.curStep = 0;
+        document.getElementById('vizInner').innerHTML = '';
+        this.infoDisks.textContent = '—';
+        this.infoTotal.textContent = '2ⁿ−1';
+        this.infoStep.textContent = '0';
+        this.statusLog.innerHTML = '';
+        this.btnRun.disabled = true;
+        this.btnStep.disabled = true;
+        this.diskInput.value = '3';
+        localStorage.removeItem('hanoi_disks');
+        this.log('🔄 已重置', 'info');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    window.hanoiApp = new HanoiController();
+});
+</script>
+
+</body>
+</html>

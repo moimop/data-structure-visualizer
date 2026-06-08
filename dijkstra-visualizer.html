@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dijkstra 最短路径算法可视化</title>
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --card-bg: #ffffff;
+            --primary: #4a90d9;
+            --danger: #e74c3c;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --purple: #8e44ad;
+            --teal: #00bcd4;
+            --text: #2c3e50;
+            --text-light: #636e72;
+            --border: #e0e4e8;
+            --shadow: 0 2px 12px rgba(0,0,0,0.08);
+            --radius: 10px;
+            --transition: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Header */
+        .header {
+            width: 100%;
+            background: linear-gradient(135deg, #1a3a4a 0%, #2c5f7c 100%);
+            color: #fff;
+            padding: 16px 24px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .header h1 { font-size: 1.6rem; font-weight: 600; letter-spacing: 1px; }
+        .header .subtitle { font-size: 0.85rem; opacity: 0.75; margin-top: 2px; }
+
+        /* Main */
+        .main-container {
+            display: flex;
+            flex: 1;
+            width: 100%;
+            max-width: 1400px;
+            gap: 16px;
+            padding: 16px;
+            height: calc(100vh - 90px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 300px; min-width: 300px;
+            display: flex; flex-direction: column; gap: 12px;
+            overflow-y: auto;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 14px 16px;
+            border: 1px solid var(--border);
+        }
+        .card-title {
+            font-size: 0.88rem; font-weight: 700; color: var(--text);
+            margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--primary); padding-bottom: 5px;
+            display: inline-block;
+        }
+
+        /* Mode Buttons */
+        .mode-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+        .btn {
+            padding: 9px 12px; border: none; border-radius: 8px;
+            font-size: 0.82rem; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; letter-spacing: 0.5px; white-space: nowrap;
+        }
+        .btn:active { transform: scale(0.96); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
+        .btn-mode {
+            background: #e8edf2; color: var(--text);
+            border: 2px solid transparent;
+        }
+        .btn-mode:hover:not(:disabled) { background: #d0d8e0; }
+        .btn-mode.active {
+            background: #d4e6f9; border-color: var(--primary);
+            color: #1a5f9e; box-shadow: 0 0 0 2px rgba(74,144,217,0.2);
+        }
+        .btn-mode.warn-active {
+            background: #fde8e8; border-color: var(--danger);
+            color: #a82020; box-shadow: 0 0 0 2px rgba(231,76,60,0.2);
+        }
+
+        .btn-run {
+            background: var(--success); color: #fff; width: 100%; padding: 11px;
+            font-size: 0.92rem;
+        }
+        .btn-run:hover:not(:disabled) { background: #219a52; }
+        .btn-reset {
+            background: #636e72; color: #fff; width: 100%; margin-top: 6px;
+        }
+        .btn-reset:hover:not(:disabled) { background: #4a5559; }
+        .btn-random {
+            background: var(--purple); color: #fff; width: 100%; margin-top: 4px;
+        }
+        .btn-random:hover:not(:disabled) { background: #732d91; }
+
+        .weight-input-row {
+            display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+        }
+        .weight-input-row label { font-size: 0.82rem; font-weight: 600; color: var(--text-light); white-space: nowrap; }
+        .weight-input-row input {
+            width: 70px; padding: 7px 10px; border: 2px solid var(--border);
+            border-radius: 6px; font-size: 0.9rem; text-align: center; outline: none;
+        }
+        .weight-input-row input:focus { border-color: var(--primary); }
+
+        /* Speed */
+        .speed-group {
+            display: flex; align-items: center; gap: 8px; margin-top: 4px;
+        }
+        .speed-group label { font-size: 0.82rem; font-weight: 600; color: var(--text-light); white-space: nowrap; }
+        .speed-group input[type="range"] { flex: 1; accent-color: var(--primary); }
+        .speed-group .speed-val { font-size: 0.78rem; color: var(--text-light); min-width: 36px; text-align: center; }
+
+        /* Distance Table */
+        .dist-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 4px; }
+        .dist-table th, .dist-table td {
+            padding: 6px 8px; text-align: center; border-bottom: 1px solid var(--border);
+        }
+        .dist-table th { background: #f5f8fc; font-weight: 700; color: var(--text); font-size: 0.75rem; }
+        .dist-table .inf { color: #b0b8c1; font-style: italic; }
+        .dist-table .updated { animation: flash 0.5s ease; }
+        @keyframes flash {
+            0%,100% { background: transparent; }
+            50% { background: #fff9c4; }
+        }
+
+        /* Sparse Matrix */
+        .sparse-table { border-collapse: collapse; font-size: 0.78rem; width: 100%; }
+        .sparse-table th, .sparse-table td {
+            padding: 4px 6px; text-align: center; border: 1px solid var(--border);
+            min-width: 28px; transition: background 0.3s;
+        }
+        .sparse-table th { background: #f5f8fc; font-weight: 700; font-size: 0.72rem; }
+        .sparse-table .cell-inf { color: #b0b8c1; }
+        .sparse-table .cell-zero { background: #f8f8f8; color: #b0b8c1; }
+        .sparse-table .cell-current-row { background: #fef9e7; }
+        .sparse-table .cell-relaxed { background: #ffeaa7; font-weight: 700; }
+
+        .toggle-header { display: flex; align-items: center; gap: 6px; }
+        .toggle-arrow { font-size: 0.7rem; transition: transform 0.25s; }
+        .toggle-header.collapsed .toggle-arrow { transform: rotate(-90deg); }
+        .toggle-body { transition: max-height 0.3s ease, opacity 0.3s; overflow: hidden; }
+        .toggle-body.hidden { max-height: 0 !important; opacity: 0; margin-top: 0 !important; }
+
+        /* Log */
+        .status-log {
+            max-height: 140px; overflow-y: auto; font-size: 0.8rem;
+            color: var(--text-light); line-height: 1.6;
+        }
+        .status-log .log-entry {
+            padding: 3px 8px; border-left: 3px solid transparent;
+            margin-bottom: 2px; animation: fadeIn 0.3s;
+        }
+        .status-log .log-entry.info { border-left-color: var(--primary); background: #f5f8fc; }
+        .status-log .log-entry.success { border-left-color: var(--success); background: #f0faf4; }
+        .status-log .log-entry.warn { border-left-color: var(--warning); background: #fefaf0; }
+        .log-entry.error { border-left-color: var(--danger); background: #fef5f5; }
+        .btn-clear-log {
+            background: none; border: 1px solid var(--border); border-radius: 6px;
+            cursor: pointer; font-size: 0.85rem; padding: 2px 6px;
+            transition: background 0.2s; line-height: 1;
+        }
+        .btn-clear-log:hover { background: #fde8e8; border-color: var(--danger); }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(-6px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Canvas */
+        .canvas-container {
+            flex: 1; background: #fdfdfd;
+            border-radius: var(--radius); box-shadow: var(--shadow);
+            border: 1px solid var(--border); overflow: hidden;
+            position: relative; cursor: crosshair;
+        }
+        .canvas-container svg {
+            width: 100%; height: 100%; display: block;
+        }
+        .canvas-container.grab { cursor: grab; }
+        .canvas-container.add-edge { cursor: pointer; }
+        .canvas-container.delete-mode { cursor: pointer; }
+
+        /* SVG Styles */
+        .node-circle {
+            transition: fill var(--transition), stroke var(--transition), stroke-width var(--transition);
+        }
+        .node-circle.unvisited { fill: #ebf2fa; stroke: #4a90d9; stroke-width: 2.5; }
+        .node-circle.source { fill: #e8f8ef; stroke: #27ae60; stroke-width: 3.5; }
+        .node-circle.current { fill: #fef3e0; stroke: #f39c12; stroke-width: 3.5; }
+        .node-circle.visited { fill: #e8f0f8; stroke: #7fa8c9; stroke-width: 2.5; }
+        .node-circle.selected { fill: #fde8e8; stroke: #e74c3c; stroke-width: 3; }
+
+        .node-text {
+            font-size: 15px; font-weight: 700; fill: #2c3e50;
+            text-anchor: middle; dominant-baseline: central; pointer-events: none;
+        }
+        .dist-label {
+            font-size: 12px; font-weight: 600; fill: #636e72;
+            text-anchor: middle; pointer-events: none;
+            transition: fill var(--transition);
+        }
+        .dist-label.updated { fill: #e74c3c; font-weight: 700; }
+
+        .edge-line {
+            stroke: #b0bec5; stroke-width: 2.5; stroke-linecap: round;
+            transition: stroke var(--transition), stroke-width var(--transition);
+            pointer-events: none;
+        }
+        .edge-line.relaxing { stroke: #f39c12; stroke-width: 3; }
+        .edge-line.shortest { stroke: #27ae60; stroke-width: 3.5; }
+
+        .edge-weight-bg {
+            fill: #ffffff; stroke: #b0bec5; stroke-width: 1;
+            rx: 4; pointer-events: none;
+        }
+        .edge-weight-text {
+            font-size: 12px; font-weight: 700; fill: #636e72;
+            text-anchor: middle; dominant-baseline: central; pointer-events: none;
+        }
+
+        .empty-message {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); color: #b0b8c1;
+            font-size: 1.1rem; text-align: center; pointer-events: none;
+        }
+        .empty-message .icon { font-size: 2.5rem; display: block; margin-bottom: 8px; }
+
+        /* Legend */
+        .legend { display: flex; flex-wrap: wrap; gap: 8px; }
+        .legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.76rem; color: var(--text-light); }
+        .legend-dot {
+            width: 13px; height: 13px; border-radius: 50%;
+            border: 2px solid rgba(0,0,0,0.12); flex-shrink: 0;
+        }
+
+        .hint-text { font-size: 0.76rem; color: #b0b8c1; margin-top: 4px; line-height: 1.5; }
+
+        @media (max-width: 900px) {
+            .main-container { flex-direction: column; height: auto; }
+            .sidebar { width: 100%; min-width: auto; }
+            .canvas-container { min-height: 380px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>🗺️ Dijkstra 最短路径算法可视化</h1>
+    <div class="subtitle">交互式构建图 → 逐步运行 Dijkstra 算法</div>
+</div>
+
+<div class="main-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <!-- Mode -->
+        <div class="card">
+            <div class="card-title">🖱️ 操作模式</div>
+            <div class="mode-row">
+                <button class="btn btn-mode active" id="btnModeAddNode">➕ 添加节点</button>
+                <button class="btn btn-mode" id="btnModeAddEdge">🔗 添加边</button>
+                <button class="btn btn-mode" id="btnModeSource">🎯 设源点</button>
+                <button class="btn btn-mode" id="btnModeDelete">🗑️ 删除</button>
+            </div>
+            <div class="weight-input-row">
+                <label>边权重:</label>
+                <input type="number" id="weightInput" value="1" min="1" max="999">
+            </div>
+            <div class="hint-text" id="hintText">💡 点击画布空白处添加节点</div>
+        </div>
+
+        <!-- Run -->
+        <div class="card">
+            <div class="card-title">▶️ 算法</div>
+            <button class="btn btn-run" id="btnRun" disabled>运行 Dijkstra</button>
+            <div class="speed-group">
+                <label>🐢 速度</label>
+                <input type="range" id="speedSlider" min="1" max="5" value="3" step="1">
+                <span class="speed-val" id="speedLabel">中速</span>
+            </div>
+            <button class="btn btn-random" id="btnRandom">🎲 随机生成图</button>
+            <button class="btn btn-reset" id="btnReset">🔄 重置</button>
+        </div>
+
+        <!-- Distance Table -->
+        <div class="card" id="distCard" style="display:none;">
+            <div class="card-title">📏 最短距离表</div>
+            <div style="overflow-x:auto;">
+                <table class="dist-table" id="distTable"></table>
+            </div>
+        </div>
+
+        <!-- Sparse Matrix -->
+        <div class="card" id="sparseCard">
+            <div class="card-title toggle-header" id="sparseToggle" style="cursor:pointer;user-select:none;">
+                📐 稀疏矩阵（邻接表） <span class="toggle-arrow" id="sparseArrow">▼</span>
+            </div>
+            <div class="toggle-body" id="sparseBody">
+                <div style="overflow-x:auto;">
+                    <table class="sparse-table" id="sparseTable"></table>
+                </div>
+                <div class="hint-text" style="margin-top:4px;">∞ = 无边直连，数字 = 边权重</div>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="card">
+            <div class="card-title">🎨 图例</div>
+            <div class="legend">
+                <div class="legend-item"><span class="legend-dot" style="background:#ebf2fa;border-color:#4a90d9;"></span> 未访问</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#e8f8ef;border-color:#27ae60;"></span> 源点</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#fef3e0;border-color:#f39c12;"></span> 当前处理</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#e8f0f8;border-color:#7fa8c9;"></span> 已访问</div>
+            </div>
+        </div>
+
+        <!-- Log -->
+        <div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span class="card-title" style="margin-bottom:0;border-bottom:none;padding-bottom:0;">📋 算法日志</span>
+                <button class="btn-clear-log" id="btnClearLog" title="清除日志">🗑️</button>
+            </div>
+            <div class="status-log" id="statusLog" style="margin-top:8px;">
+                <div style="color:#b0b8c1;">等待操作…</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Canvas -->
+    <div class="canvas-container" id="canvasContainer">
+        <svg id="graphSvg"></svg>
+        <div class="empty-message" id="emptyMessage">
+            <span class="icon">📍</span>
+            点击画布添加第一个节点
+        </div>
+    </div>
+</div>
+
+<script>
+// ===========================
+// 图数据结构
+// ===========================
+class Graph {
+    constructor() {
+        this.nodes = new Map();  // id -> {id, x, y}
+        this.adj = new Map();    // id -> Map(neighborId -> weight)
+        this.nextId = 1;
+    }
+
+    addNode(x, y) {
+        // 从现有节点中找最大编号 + 1（删除后再次添加接着往后排）
+        let maxId = 0;
+        for (const nid of this.nodes.keys()) {
+            if (nid > maxId) maxId = nid;
+        }
+        const id = maxId + 1;
+        this.nextId = id + 1;
+        this.nodes.set(id, { id, x, y });
+        this.adj.set(id, new Map());
+        return id;
+    }
+
+    removeNode(id) {
+        this.nodes.delete(id);
+        this.adj.delete(id);
+        for (const [nid, neighbors] of this.adj) {
+            neighbors.delete(id);
+        }
+    }
+
+    addEdge(from, to, weight) {
+        if (!this.adj.has(from) || !this.adj.has(to)) return false;
+        if (from === to) return false;
+        this.adj.get(from).set(to, weight);
+        this.adj.get(to).set(from, weight);
+        return true;
+    }
+
+    removeEdge(from, to) {
+        if (this.adj.has(from)) this.adj.get(from).delete(to);
+        if (this.adj.has(to)) this.adj.get(to).delete(from);
+    }
+
+    getEdges() {
+        const edges = [];
+        const seen = new Set();
+        for (const [from, neighbors] of this.adj) {
+            for (const [to, weight] of neighbors) {
+                const key = from < to ? `${from}-${to}` : `${to}-${from}`;
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    edges.push({ from, to, weight });
+                }
+            }
+        }
+        return edges;
+    }
+
+    nodeCount() { return this.nodes.size; }
+
+    // Dijkstra 算法 — 返回每步的快照用于动画
+    dijkstra(sourceId) {
+        if (!this.nodes.has(sourceId)) return null;
+
+        const dist = new Map();
+        const prev = new Map();
+        const visited = new Set();
+        const unvisited = new Set(this.nodes.keys());
+
+        for (const id of this.nodes.keys()) dist.set(id, Infinity);
+        dist.set(sourceId, 0);
+
+        const steps = [];
+
+        // 初始状态
+        steps.push({
+            type: 'init', source: sourceId,
+            dist: new Map(dist), visited: new Set(visited),
+            current: null, relaxEdges: [],
+        });
+
+        while (unvisited.size > 0) {
+            // 找最小距离的未访问节点
+            let u = null, minDist = Infinity;
+            for (const id of unvisited) {
+                const d = dist.get(id);
+                if (d < minDist) { minDist = d; u = id; }
+            }
+
+            if (u === null || dist.get(u) === Infinity) break;
+
+            unvisited.delete(u);
+            visited.add(u);
+
+            const relaxEdges = [];
+            const neighbors = this.adj.get(u) || new Map();
+            for (const [v, weight] of neighbors) {
+                if (visited.has(v)) continue;
+                const alt = dist.get(u) + weight;
+                const oldDist = dist.get(v);
+                if (alt < oldDist) {
+                    dist.set(v, alt);
+                    prev.set(v, u);
+                    relaxEdges.push({ from: u, to: v, weight, oldDist, newDist: alt });
+                }
+            }
+
+            steps.push({
+                type: 'step',
+                current: u,
+                dist: new Map(dist),
+                visited: new Set(visited),
+                unvisited: new Set(unvisited),
+                relaxEdges,
+            });
+        }
+
+        steps.push({
+            type: 'done',
+            dist: new Map(dist),
+            visited: new Set(visited),
+            prev: new Map(prev),
+            current: null,
+            relaxEdges: [],
+        });
+
+        return steps;
+    }
+
+    // 持久化
+    saveToStorage() {
+        const data = {
+            nodes: Array.from(this.nodes.entries()),
+            edges: this.getEdges(),
+            nextId: this.nextId,
+        };
+        localStorage.setItem('dijkstra_graph_data', JSON.stringify(data));
+    }
+
+    loadFromStorage() {
+        const raw = localStorage.getItem('dijkstra_graph_data');
+        if (!raw) return false;
+        try {
+            const data = JSON.parse(raw);
+            this.nodes.clear();
+            this.adj.clear();
+            for (const [id, node] of data.nodes) {
+                this.nodes.set(id, node);
+                this.adj.set(id, new Map());
+            }
+            for (const edge of data.edges) {
+                this.adj.get(edge.from).set(edge.to, edge.weight);
+                this.adj.get(edge.to).set(edge.from, edge.weight);
+            }
+            this.nextId = data.nextId || this.nodes.size + 1;
+            return true;
+        } catch (e) {
+            localStorage.removeItem('dijkstra_graph_data');
+            return false;
+        }
+    }
+
+    reset() {
+        this.nodes.clear();
+        this.adj.clear();
+        this.nextId = 1;
+        localStorage.removeItem('dijkstra_graph_data');
+    }
+}
+
+// ===========================
+// SVG 可视化引擎
+// ===========================
+class GraphVisualizer {
+    constructor(svg, graph) {
+        this.svg = svg;
+        this.graph = graph;
+        this.NODE_R = 24;
+        this.nodeElements = new Map();   // id -> { group, circle, text, distLabel }
+        this.edgeElements = new Map();   // key -> { group, line, weightBg, weightText }
+        this.selectedNode = null;        // 用于添加边时记住第一个点击的节点
+    }
+
+    // 清除所有运行时状态（高亮等）
+    clearRuntimeState() {
+        this.selectedNode = null;
+    }
+
+    // 直接更新单个节点的样式（避免全量 render）
+    updateNodeStyle(id, cls, distText) {
+        const els = this.nodeElements.get(id);
+        if (!els) return;
+        els.circle.setAttribute('class', `node-circle ${cls}`);
+        if (distText !== undefined) {
+            els.distLabel.textContent = distText;
+        }
+    }
+
+    // 获取边元素的 key
+    edgeKey(from, to) {
+        return from < to ? `${from}-${to}` : `${to}-${from}`;
+    }
+
+    // 计算连线与圆周的交点
+    edgeEndpoints(x1, y1, x2, y2) {
+        const dx = x2 - x1, dy = y2 - y1;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist === 0) return { sx: x1, sy: y1, ex: x2, ey: y2 };
+        const r = this.NODE_R;
+        return {
+            sx: x1 + (dx / dist) * r,
+            sy: y1 + (dy / dist) * r,
+            ex: x2 - (dx / dist) * r,
+            ey: y2 - (dy / dist) * r,
+        };
+    }
+
+    render(nodeStyles = null, edgeStyles = null) {
+        // nodeStyles: Map(id -> {cls, distText})
+        // edgeStyles: Map(key -> {cls})
+
+        const svgW = 1000, svgH = 600;
+        this.svg.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
+
+        const currentNodes = new Set(this.graph.nodes.keys());
+        const currentEdges = new Set();
+
+        // 移除不在图中的节点 SVG 元素
+        for (const [id, els] of this.nodeElements) {
+            if (!currentNodes.has(id)) {
+                els.group.parentNode?.removeChild(els.group);
+                this.nodeElements.delete(id);
+            }
+        }
+
+        // 绘制边
+        const edges = this.graph.getEdges();
+        for (const edge of edges) {
+            const key = this.edgeKey(edge.from, edge.to);
+            currentEdges.add(key);
+
+            const fromNode = this.graph.nodes.get(edge.from);
+            const toNode = this.graph.nodes.get(edge.to);
+            if (!fromNode || !toNode) continue;
+
+            const ep = this.edgeEndpoints(fromNode.x, fromNode.y, toNode.x, toNode.y);
+            const mx = (ep.sx + ep.ex) / 2, my = (ep.sy + ep.ey) / 2;
+
+            let els = this.edgeElements.get(key);
+            if (!els) {
+                const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                const weightBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                const weightText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                group.appendChild(line);
+                group.appendChild(weightBg);
+                group.appendChild(weightText);
+                // 边插入在第一个节点之前，保证节点始终在边上面
+                const firstNodeGroup = this.svg.querySelector('g[data-node]');
+                if (firstNodeGroup) {
+                    this.svg.insertBefore(group, firstNodeGroup);
+                } else {
+                    this.svg.appendChild(group);
+                }
+                els = { group, line, weightBg, weightText };
+                this.edgeElements.set(key, els);
+            }
+
+            els.line.setAttribute('x1', ep.sx);
+            els.line.setAttribute('y1', ep.sy);
+            els.line.setAttribute('x2', ep.ex);
+            els.line.setAttribute('y2', ep.ey);
+
+            let edgeCls = '';
+            if (edgeStyles && edgeStyles.has(key)) edgeCls = edgeStyles.get(key);
+            els.line.setAttribute('class', `edge-line ${edgeCls}`);
+
+            els.weightText.textContent = edge.weight;
+            els.weightText.setAttribute('x', mx);
+            els.weightText.setAttribute('y', my);
+            els.weightText.setAttribute('class', 'edge-weight-text');
+
+            const tw = edge.weight.toString().length * 8 + 8;
+            els.weightBg.setAttribute('x', mx - tw / 2);
+            els.weightBg.setAttribute('y', my - 10);
+            els.weightBg.setAttribute('width', tw);
+            els.weightBg.setAttribute('height', 20);
+            els.weightBg.setAttribute('class', 'edge-weight-bg');
+        }
+
+        // 移除不在图中的边 SVG 元素
+        for (const [key, els] of this.edgeElements) {
+            if (!currentEdges.has(key)) {
+                els.group.parentNode?.removeChild(els.group);
+                this.edgeElements.delete(key);
+            }
+        }
+
+        // 绘制节点
+        for (const [id, node] of this.graph.nodes) {
+            let els = this.nodeElements.get(id);
+            if (!els) {
+                const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                group.setAttribute('data-node', id);
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                const distLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                group.appendChild(circle);
+                group.appendChild(text);
+                group.appendChild(distLabel);
+                // 节点始终 append 在最上层
+                this.svg.appendChild(group);
+                els = { group, circle, text, distLabel };
+                this.nodeElements.set(id, els);
+            }
+
+            els.group.setAttribute('transform', `translate(${node.x}, ${node.y})`);
+            els.circle.setAttribute('r', this.NODE_R);
+            els.text.setAttribute('class', 'node-text');
+            els.text.textContent = id;
+            els.distLabel.setAttribute('y', this.NODE_R + 16);
+            els.distLabel.setAttribute('class', 'dist-label');
+
+            let cls = 'unvisited';
+            let distText = '';
+            if (nodeStyles) {
+                const style = nodeStyles.get(id);
+                if (style) {
+                    cls = style.cls || 'unvisited';
+                    distText = style.distText || '';
+                }
+            }
+            els.circle.setAttribute('class', `node-circle ${cls}`);
+            els.distLabel.textContent = distText || '';
+        }
+    }
+}
+
+// ===========================
+// 应用控制器
+// ===========================
+class AppController {
+    constructor() {
+        this.graph = new Graph();
+        this.svg = document.getElementById('graphSvg');
+        this.visualizer = new GraphVisualizer(this.svg, this.graph);
+        this.mode = 'addNode';  // addNode | addEdge | source | delete
+        this.sourceId = null;
+        this.animating = false;
+        this.currentStep = 0;
+        this.algorithmSteps = null;
+
+        // DOM
+        this.canvasContainer = document.getElementById('canvasContainer');
+        this.emptyMessage = document.getElementById('emptyMessage');
+        this.hintText = document.getElementById('hintText');
+        this.weightInput = document.getElementById('weightInput');
+        this.btnRun = document.getElementById('btnRun');
+        this.statusLog = document.getElementById('statusLog');
+        this.distCard = document.getElementById('distCard');
+        this.distTable = document.getElementById('distTable');
+        this.sparseCard = document.getElementById('sparseCard');
+        this.sparseTable = document.getElementById('sparseTable');
+        this.sparseToggle = document.getElementById('sparseToggle');
+        this.sparseBody = document.getElementById('sparseBody');
+        this.sparseArrow = document.getElementById('sparseArrow');
+        this.sparseVisible = true;
+        this.speedSlider = document.getElementById('speedSlider');
+        this.speedLabel = document.getElementById('speedLabel');
+
+        this.modeButtons = {
+            addNode: document.getElementById('btnModeAddNode'),
+            addEdge: document.getElementById('btnModeAddEdge'),
+            source: document.getElementById('btnModeSource'),
+            delete: document.getElementById('btnModeDelete'),
+        };
+
+        this.hints = {
+            addNode: '💡 点击画布空白处添加节点',
+            addEdge: '💡 依次点击两个节点来添加边',
+            source: '💡 点击节点将其设为 Dijkstra 源点',
+            delete: '💡 点击节点删除节点，点击权重标签删除边',
+        };
+
+        // 尝试恢复
+        const restored = this.graph.loadFromStorage();
+        this.initEvents();
+        this.updateUI();
+
+        if (restored) {
+            this.visualizer.render();
+            this.log('📂 已恢复上次的图', 'info');
+        }
+    }
+
+    // 速度
+    get delay() {
+        return [1200, 800, 500, 300, 150][this.speedSlider.value - 1] || 500;
+    }
+    get speedText() {
+        return ['很慢', '慢', '中速', '快', '极快'][this.speedSlider.value - 1] || '中速';
+    }
+
+    sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    log(msg, type = 'info') {
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${type}`;
+        entry.textContent = msg;
+        this.statusLog.appendChild(entry);
+        this.statusLog.scrollTop = this.statusLog.scrollHeight;
+        while (this.statusLog.children.length > 50) {
+            this.statusLog.removeChild(this.statusLog.firstChild);
+        }
+    }
+
+    clearLog() {
+        this.statusLog.innerHTML = '<div style="color:#b0b8c1;">日志已清除</div>';
+    }
+
+    // ===== 稀疏矩阵 =====
+    toggleSparseMatrix() {
+        this.sparseVisible = !this.sparseVisible;
+        if (this.sparseVisible) {
+            this.sparseBody.classList.remove('hidden');
+            this.sparseToggle.classList.remove('collapsed');
+            this.sparseArrow.textContent = '▼';
+        } else {
+            this.sparseBody.classList.add('hidden');
+            this.sparseToggle.classList.add('collapsed');
+            this.sparseArrow.textContent = '▶';
+        }
+    }
+
+    renderSparseMatrix(step = null) {
+        if (this.graph.nodeCount() === 0) {
+            this.sparseTable.innerHTML = '<tr><td style="color:#b0b8c1;padding:8px;">暂无节点</td></tr>';
+            return;
+        }
+        const sortedIds = Array.from(this.graph.nodes.keys()).sort((a, b) => a - b);
+        const n = sortedIds.length;
+
+        // 表头
+        let html = '<thead><tr><th></th>';
+        for (const id of sortedIds) {
+            html += `<th>${id}</th>`;
+        }
+        html += '</tr></thead><tbody>';
+
+        // 当前算法步骤中的当前节点（用于高亮行）
+        const currentId = (step && step.current) ? step.current : null;
+        // 松弛边集合
+        const relaxedSet = new Set();
+        if (step && step.relaxEdges) {
+            for (const rel of step.relaxEdges) {
+                relaxedSet.add(`${rel.from}-${rel.to}`);
+                relaxedSet.add(`${rel.to}-${rel.from}`);
+            }
+        }
+
+        for (const fromId of sortedIds) {
+            html += '<tr>';
+            html += `<th>${fromId}</th>`;
+            const rowClass = (fromId === currentId) ? ' cell-current-row' : '';
+
+            for (const toId of sortedIds) {
+                if (fromId === toId) {
+                    html += `<td class="cell-zero${rowClass}">0</td>`;
+                } else {
+                    const neighbors = this.graph.adj.get(fromId);
+                    const w = (neighbors && neighbors.has(toId)) ? neighbors.get(toId) : null;
+                    if (w !== null) {
+                        const edgeKey = `${fromId}-${toId}`;
+                        const relaxed = relaxedSet.has(edgeKey) ? ' cell-relaxed' : '';
+                        html += `<td class="${rowClass}${relaxed}">${w}</td>`;
+                    } else {
+                        html += `<td class="cell-inf${rowClass}">∞</td>`;
+                    }
+                }
+            }
+            html += '</tr>';
+        }
+        html += '</tbody>';
+        this.sparseTable.innerHTML = html;
+    }
+
+    // ===== 模式切换 =====
+    setMode(mode) {
+        this.mode = mode;
+        this.visualizer.clearRuntimeState();
+        this.visualizer.selectedNode = null;
+
+        // 更新按钮状态
+        Object.entries(this.modeButtons).forEach(([key, btn]) => {
+            btn.classList.remove('active', 'warn-active');
+            if (key === mode) {
+                btn.classList.add(key === 'delete' ? 'warn-active' : 'active');
+            }
+        });
+
+        // 更新画布光标
+        this.canvasContainer.classList.remove('add-edge', 'delete-mode', 'grab');
+        if (mode === 'addEdge') this.canvasContainer.classList.add('add-edge');
+        if (mode === 'delete') this.canvasContainer.classList.add('delete-mode');
+
+        this.hintText.textContent = this.hints[mode];
+        this.visualizer.render(this._getNodeStyles());
+    }
+
+    // ===== 事件 =====
+    initEvents() {
+        // Mode buttons
+        this.modeButtons.addNode.addEventListener('click', () => this.setMode('addNode'));
+        this.modeButtons.addEdge.addEventListener('click', () => this.setMode('addEdge'));
+        this.modeButtons.source.addEventListener('click', () => this.setMode('source'));
+        this.modeButtons.delete.addEventListener('click', () => this.setMode('delete'));
+
+        // Canvas click
+        this.svg.addEventListener('click', (e) => this.handleCanvasClick(e));
+
+        // Run / Random / Reset
+        document.getElementById('btnRun').addEventListener('click', () => this.handleRun());
+        document.getElementById('btnRandom').addEventListener('click', () => this.handleRandomGraph());
+        document.getElementById('btnReset').addEventListener('click', () => this.handleReset());
+        document.getElementById('btnClearLog').addEventListener('click', () => this.clearLog());
+        this.sparseToggle.addEventListener('click', () => this.toggleSparseMatrix());
+
+        // Speed
+        this.speedSlider.addEventListener('input', () => {
+            this.speedLabel.textContent = this.speedText;
+        });
+    }
+
+    // 获取准确的 SVG viewBox 坐标（修复边缘节点点击不到的问题）
+    getSVGCoords(e) {
+        const pt = this.svg.createSVGPoint();
+        pt.x = e.clientX;
+        pt.y = e.clientY;
+        const ctm = this.svg.getScreenCTM();
+        if (!ctm) return { x: 0, y: 0 };
+        const svgP = pt.matrixTransform(ctm.inverse());
+        return { x: svgP.x, y: svgP.y };
+    }
+
+    // 判断点击是否在某个节点上
+    hitTest(x, y) {
+        for (const [id, node] of this.graph.nodes) {
+            const dx = x - node.x, dy = y - node.y;
+            if (Math.sqrt(dx * dx + dy * dy) <= this.visualizer.NODE_R + 4) {
+                return id;
+            }
+        }
+        return null;
+    }
+
+    // 判断点击是否在某条边的权重标签附近（用于删除边）
+    edgeHitTest(x, y) {
+        const edges = this.graph.getEdges();
+        for (const edge of edges) {
+            const fn = this.graph.nodes.get(edge.from);
+            const tn = this.graph.nodes.get(edge.to);
+            if (!fn || !tn) continue;
+            const ep = this.visualizer.edgeEndpoints(fn.x, fn.y, tn.x, tn.y);
+            const mx = (ep.sx + ep.ex) / 2;
+            const my = (ep.sy + ep.ey) / 2;
+            if (Math.hypot(x - mx, y - my) <= 18) {
+                return { from: edge.from, to: edge.to };
+            }
+        }
+        return null;
+    }
+
+    async handleCanvasClick(e) {
+        if (this.animating) return;
+        const coords = this.getSVGCoords(e);
+        const hitId = this.hitTest(coords.x, coords.y);
+
+        if (this.mode === 'addNode') {
+            if (hitId !== null) return; // 点击在节点上，忽略
+            const newId = this.graph.addNode(coords.x, coords.y);
+            this.visualizer.render(this._getNodeStyles());
+            this.updateUI();
+            this.graph.saveToStorage();
+            this.log(`✅ 添加节点 ${newId} (${Math.round(coords.x)}, ${Math.round(coords.y)})`, 'success');
+
+        } else if (this.mode === 'addEdge') {
+            if (hitId === null) {
+                // 点击空白处，取消选择
+                if (this.visualizer.selectedNode !== null) {
+                    this.visualizer.updateNodeStyle(this.visualizer.selectedNode, this._baseCls(this.visualizer.selectedNode));
+                    this.visualizer.selectedNode = null;
+                }
+                return;
+            }
+            if (this.visualizer.selectedNode === null) {
+                // 第一次点击：选中节点（仅更新该节点样式）
+                this.visualizer.selectedNode = hitId;
+                this.visualizer.updateNodeStyle(hitId, 'selected');
+                this.log(`🔗 已选中节点 ${hitId}，请点击另一个节点`, 'info');
+            } else if (this.visualizer.selectedNode === hitId) {
+                // 点击同一节点，取消选择
+                this.visualizer.updateNodeStyle(hitId, this._baseCls(hitId));
+                this.visualizer.selectedNode = null;
+            } else {
+                // 第二次点击：创建边（需要全量渲染以画出新边）
+                const from = this.visualizer.selectedNode;
+                const to = hitId;
+                const weight = parseInt(this.weightInput.value) || 1;
+                if (weight < 1) {
+                    this.log('⚠️ 边权重必须 ≥ 1', 'warn');
+                    return;
+                }
+                const success = this.graph.addEdge(from, to, weight);
+                if (success) {
+                    this.log(`✅ 添加边 ${from} ↔ ${to}，权重 = ${weight}`, 'success');
+                    this.graph.saveToStorage();
+                } else {
+                    this.log(`⚠️ 边 ${from} ↔ ${to} 已存在（已更新权重 = ${weight}）`, 'warn');
+                    this.graph.addEdge(from, to, weight);
+                    this.graph.saveToStorage();
+                }
+                this.visualizer.selectedNode = null;
+                this.visualizer.render(this._getNodeStyles());
+                this.updateUI();
+            }
+
+        } else if (this.mode === 'source') {
+            if (hitId === null) return;
+            // 还原旧源点样式
+            if (this.sourceId !== null) {
+                this.visualizer.updateNodeStyle(this.sourceId, 'unvisited');
+            }
+            // 设置新源点
+            this.sourceId = hitId;
+            this.visualizer.updateNodeStyle(hitId, 'source');
+            this.log(`🎯 设置节点 ${hitId} 为源点`, 'success');
+            this.updateUI();
+
+        } else if (this.mode === 'delete') {
+            // 优先检测点击边（权重标签附近），其次检测点击节点
+            const edgeHit = this.edgeHitTest(coords.x, coords.y);
+            if (edgeHit && hitId === null) {
+                // 点击在边权重标签附近 → 删除该边
+                this.graph.removeEdge(edgeHit.from, edgeHit.to);
+                this.visualizer.render(this._getNodeStyles());
+                this.updateUI();
+                this.graph.saveToStorage();
+                this.log(`🗑️ 已删除边 ${edgeHit.from} ↔ ${edgeHit.to}`, 'warn');
+                this.distCard.style.display = 'none';
+                this.algorithmSteps = null;
+                return;
+            }
+            if (hitId !== null) {
+                // 点击节点 → 删除节点
+                this.graph.removeNode(hitId);
+                if (this.sourceId === hitId) this.sourceId = null;
+                this.visualizer.selectedNode = null;
+                this.visualizer.render(this._getNodeStyles());
+                this.updateUI();
+                this.graph.saveToStorage();
+                this.log(`🗑️ 已删除节点 ${hitId}`, 'warn');
+                this.distCard.style.display = 'none';
+                this.algorithmSteps = null;
+                return;
+            }
+            // 点击空白处，不做任何事
+        }
+    }
+
+    // ===== 节点样式（用于 render） =====
+    _getNodeStyles() {
+        const styles = new Map();
+        for (const id of this.graph.nodes.keys()) {
+            let cls = 'unvisited';
+            if (id === this.sourceId) cls = 'source';
+
+            // 算法运行中的状态
+            if (this.algorithmSteps && this.currentStep > 0 && this.currentStep < this.algorithmSteps.length) {
+                const step = this.algorithmSteps[this.currentStep];
+                if (step.visited && step.visited.has(id)) cls = 'visited';
+                if (id === step.current) cls = 'current';
+                if (id === this.sourceId && step.type !== 'init') cls = 'source';
+            }
+            if (this.algorithmSteps && this.currentStep >= this.algorithmSteps.length - 1) {
+                const last = this.algorithmSteps[this.algorithmSteps.length - 1];
+                if (last.visited && last.visited.has(id)) cls = 'visited';
+                if (id === this.sourceId) cls = 'source';
+            }
+
+            // 选中的节点（添加边模式）
+            if (this.visualizer.selectedNode === id) cls = 'selected';
+
+            const distText = this._distLabel(id);
+            styles.set(id, { cls, distText });
+        }
+        return styles;
+    }
+
+    _getEdgeStyles() {
+        const styles = new Map();
+        if (this.algorithmSteps && this.currentStep > 0 && this.currentStep < this.algorithmSteps.length) {
+            const step = this.algorithmSteps[this.currentStep];
+            for (const rel of step.relaxEdges || []) {
+                styles.set(this.visualizer.edgeKey(rel.from, rel.to), 'relaxing');
+            }
+        }
+        return styles;
+    }
+
+    // 某节点的基本样式类名（不考虑 selected 叠加）
+    _baseCls(id) {
+        if (this.algorithmSteps && this.currentStep > 0 && this.currentStep < this.algorithmSteps.length) {
+            const step = this.algorithmSteps[this.currentStep];
+            if (step.visited && step.visited.has(id)) return 'visited';
+            if (id === step.current) return 'current';
+        }
+        if (this.algorithmSteps && this.currentStep >= this.algorithmSteps.length - 1) {
+            const last = this.algorithmSteps[this.algorithmSteps.length - 1];
+            if (last.visited && last.visited.has(id)) return 'visited';
+        }
+        if (id === this.sourceId) return 'source';
+        return 'unvisited';
+    }
+
+    _distLabel(id) {
+        if (!this.algorithmSteps || this.currentStep >= this.algorithmSteps.length) return '';
+        const step = this.algorithmSteps[this.currentStep];
+        if (!step || !step.dist) return '';
+        const d = step.dist.get(id);
+        if (d === undefined || d === Infinity) return '∞';
+        return String(d);
+    }
+
+    // ===== 运行 Dijkstra =====
+    async handleRun() {
+        if (this.animating) return;
+        if (this.graph.nodeCount() === 0) {
+            this.log('⚠️ 图为空，请先添加节点', 'warn');
+            return;
+        }
+        if (this.sourceId === null) {
+            this.log('⚠️ 请先设置源点（点击 🎯设源点 后点击节点）', 'warn');
+            return;
+        }
+
+        this.animating = true;
+        this.setButtonsEnabled(false);
+        this.distCard.style.display = 'block';
+
+        // 运行算法
+        this.algorithmSteps = this.graph.dijkstra(this.sourceId);
+        if (!this.algorithmSteps) {
+            this.log('⚠️ 算法运行失败', 'error');
+            this.animating = false;
+            this.setButtonsEnabled(true);
+            return;
+        }
+
+        this.log(`🔍 从源点 ${this.sourceId} 开始运行 Dijkstra 算法…`, 'info');
+
+        // 逐步播放
+        for (let i = 0; i < this.algorithmSteps.length; i++) {
+            this.currentStep = i;
+            const step = this.algorithmSteps[i];
+
+            const nodeStyles = this._getNodeStyles();
+            const edgeStyles = this._getEdgeStyles();
+            this.visualizer.render(nodeStyles, edgeStyles);
+            this._updateDistTable(step);
+            this.renderSparseMatrix(step);
+
+            if (step.type === 'init') {
+                this.log(`📐 初始化：所有节点距离 = ∞，源点 ${this.sourceId} 距离 = 0`, 'info');
+            } else if (step.type === 'step') {
+                const d = step.dist.get(step.current);
+                this.log(`📍 处理节点 ${step.current}（当前距离 = ${d === Infinity ? '∞' : d}）`, 'info');
+                for (const rel of step.relaxEdges) {
+                    this.log(`  ↳ 松弛边 ${rel.from}→${rel.to}: ${rel.oldDist === Infinity ? '∞' : rel.oldDist} → ${rel.newDist}`, 'info');
+                }
+                if (step.relaxEdges.length === 0) {
+                    this.log(`  ↳ 无可松弛的边`, 'info');
+                }
+            } else if (step.type === 'done') {
+                this.log(`✅ Dijkstra 完成！所有可达节点的最短路径已找到`, 'success');
+                const unreachable = [];
+                for (const [id, d] of step.dist) {
+                    if (d === Infinity) unreachable.push(id);
+                }
+                if (unreachable.length > 0) {
+                    this.log(`⚠️ 不可达节点: ${unreachable.join(', ')}`, 'warn');
+                }
+            }
+
+            await this.sleep(this.delay);
+        }
+
+        // 最终状态
+        this.currentStep = this.algorithmSteps.length - 1;
+        const finalStep = this.algorithmSteps[this.currentStep];
+
+        // 构建最短路径树的边集
+        const shortestEdges = new Map();
+        if (finalStep.prev) {
+            for (const [v, u] of finalStep.prev) {
+                shortestEdges.set(this.visualizer.edgeKey(u, v), 'shortest');
+            }
+        }
+        this.visualizer.render(this._getNodeStyles(), shortestEdges);
+        this._updateDistTable(finalStep);
+        this.renderSparseMatrix(finalStep);
+        this.log('🏁 绿色边表示最短路径树', 'success');
+
+        this.animating = false;
+        this.setButtonsEnabled(true);
+    }
+
+    _updateDistTable(step) {
+        if (!step || !step.dist) return;
+        const sortedIds = Array.from(step.dist.keys()).sort((a, b) => a - b);
+        let html = '<thead><tr><th>节点</th>';
+        for (const id of sortedIds) html += `<th>${id}${id === this.sourceId ? '★' : ''}</th>`;
+        html += '</tr></thead><tbody><tr><td><b>距离</b></td>';
+        for (const id of sortedIds) {
+            const d = step.dist.get(id);
+            html += `<td>${d === Infinity ? '<span class="inf">∞</span>' : d}</td>`;
+        }
+        html += '</tr></tbody>';
+        this.distTable.innerHTML = html;
+    }
+
+    // ===== 随机图 =====
+    async handleRandomGraph() {
+        if (this.animating) return;
+        this.graph.reset();
+        this.visualizer = new GraphVisualizer(this.svg, this.graph);
+        this.sourceId = null;
+        this.algorithmSteps = null;
+        this.currentStep = 0;
+        this.distCard.style.display = 'none';
+
+        const count = 6 + Math.floor(Math.random() * 4); // 6~9 nodes
+        const positions = [];
+        const margin = 80;
+        const w = 920, h = 520;
+
+        for (let i = 0; i < count; i++) {
+            let x, y, overlap;
+            do {
+                overlap = false;
+                x = margin + Math.random() * (w - margin * 2);
+                y = margin + Math.random() * (h - margin * 2);
+                for (const p of positions) {
+                    if (Math.hypot(x - p.x, y - p.y) < 80) { overlap = true; break; }
+                }
+            } while (overlap);
+            positions.push({ x, y });
+            this.graph.addNode(x, y);
+        }
+
+        const nodeIds = Array.from(this.graph.nodes.keys());
+        // 保证连通：先生成最小生成树状结构
+        const connected = new Set([nodeIds[0]]);
+        const remaining = new Set(nodeIds.slice(1));
+        while (remaining.size > 0) {
+            const from = Array.from(connected)[Math.floor(Math.random() * connected.size)];
+            const to = Array.from(remaining)[Math.floor(Math.random() * remaining.size)];
+            const wgt = Math.floor(Math.random() * 20) + 1;
+            this.graph.addEdge(from, to, wgt);
+            remaining.delete(to);
+            connected.add(to);
+        }
+
+        // 额外随机边
+        const extraEdges = Math.floor(Math.random() * count);
+        for (let i = 0; i < extraEdges; i++) {
+            const a = nodeIds[Math.floor(Math.random() * nodeIds.length)];
+            const b = nodeIds[Math.floor(Math.random() * nodeIds.length)];
+            if (a !== b) {
+                this.graph.addEdge(a, b, Math.floor(Math.random() * 20) + 1);
+            }
+        }
+
+        // 随机选源点
+        this.sourceId = nodeIds[Math.floor(Math.random() * nodeIds.length)];
+
+        this.visualizer.render(this._getNodeStyles());
+        this.updateUI();
+        this.graph.saveToStorage();
+        this.log(`🎲 已生成随机图（${count} 个节点），源点为 ${this.sourceId}`, 'success');
+    }
+
+    // ===== 重置 =====
+    async handleReset() {
+        if (this.animating) return;
+        this.graph.reset();
+        while (this.svg.firstChild) this.svg.removeChild(this.svg.firstChild);
+        this.visualizer = new GraphVisualizer(this.svg, this.graph);
+        this.sourceId = null;
+        this.algorithmSteps = null;
+        this.currentStep = 0;
+        this.mode = 'addNode';
+        this.setMode('addNode');
+        this.distCard.style.display = 'none';
+        this.distTable.innerHTML = '';
+        this.statusLog.innerHTML = '';
+        this.updateUI();
+        this.log('🔄 已重置', 'info');
+    }
+
+    // ===== UI 更新 =====
+    updateUI() {
+        const count = this.graph.nodeCount();
+        if (count === 0) {
+            this.emptyMessage.style.display = 'block';
+        } else {
+            this.emptyMessage.style.display = 'none';
+        }
+        this.btnRun.disabled = (count === 0 || this.sourceId === null);
+        // 静态模式渲染稀疏矩阵（无算法步骤高亮）
+        if (!this.animating) {
+            this.renderSparseMatrix(null);
+        }
+    }
+
+    setButtonsEnabled(enabled) {
+        Object.values(this.modeButtons).forEach(b => b.disabled = !enabled);
+        this.btnRun.disabled = !enabled || this.graph.nodeCount() === 0 || this.sourceId === null;
+        document.getElementById('btnRandom').disabled = !enabled;
+        document.getElementById('btnReset').disabled = !enabled;
+    }
+}
+
+// ===========================
+// 启动
+// ===========================
+document.addEventListener('DOMContentLoaded', () => {
+    const app = new AppController();
+    window.dijkstraApp = app;
+});
+</script>
+
+</body>
+</html>

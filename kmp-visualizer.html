@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KMP 字符串匹配算法可视化</title>
+    <style>
+        :root {
+            --bg: #f0f4f8; --card-bg: #ffffff;
+            --primary: #4a90d9; --danger: #e74c3c; --success: #27ae60;
+            --warning: #f39c12; --purple: #8e44ad; --teal: #00bcd4;
+            --text: #2c3e50; --text-light: #636e72; --border: #e0e4e8;
+            --shadow: 0 2px 12px rgba(0,0,0,0.08); --radius: 10px;
+            --transition: 0.3s ease;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Consolas', monospace;
+            background: var(--bg); color: var(--text); min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .header {
+            width: 100%; background: linear-gradient(135deg, #1a3a4a 0%, #2c5f7c 100%);
+            color: #fff; padding: 16px 24px; text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .header h1 { font-size: 1.6rem; font-weight: 600; letter-spacing: 1px; }
+        .header .subtitle { font-size: 0.85rem; opacity: 0.75; margin-top: 2px; }
+
+        .main-container {
+            display: flex; flex: 1; width: 100%; max-width: 1400px;
+            gap: 16px; padding: 16px; height: calc(100vh - 90px);
+        }
+        .sidebar {
+            width: 300px; min-width: 300px;
+            display: flex; flex-direction: column; gap: 12px; overflow-y: auto;
+        }
+        .card {
+            background: var(--card-bg); border-radius: var(--radius);
+            box-shadow: var(--shadow); padding: 14px 16px; border: 1px solid var(--border);
+        }
+        .card-title {
+            font-size: 0.88rem; font-weight: 700; color: var(--text);
+            margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--primary); padding-bottom: 5px;
+            display: inline-block;
+        }
+        .canvas-area {
+            flex: 1; display: flex; flex-direction: column; gap: 12px; overflow-y: auto;
+        }
+
+        /* Input */
+        .input-row {
+            display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+        }
+        .input-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 150px; }
+        .input-group label { font-size: 0.78rem; font-weight: 600; color: var(--text-light); }
+        .input-group input {
+            padding: 9px 12px; border: 2px solid var(--border); border-radius: 8px;
+            font-size: 1rem; font-family: 'Consolas','Courier New',monospace;
+            outline: none; transition: border 0.2s;
+        }
+        .input-group input:focus { border-color: var(--primary); }
+
+        .btn {
+            padding: 9px 16px; border: none; border-radius: 8px;
+            font-size: 0.85rem; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; letter-spacing: 0.5px; white-space: nowrap;
+        }
+        .btn:active { transform: scale(0.96); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+        .btn-run { background: var(--success); color: #fff; }
+        .btn-run:hover:not(:disabled) { background: #219a52; }
+        .btn-reset { background: #636e72; color: #fff; }
+        .btn-reset:hover:not(:disabled) { background: #4a5559; }
+        .btn-step { background: var(--primary); color: #fff; }
+        .btn-step:hover:not(:disabled) { background: #357abd; }
+
+        .speed-group {
+            display: flex; align-items: center; gap: 8px;
+        }
+        .speed-group label { font-size: 0.82rem; font-weight: 600; color: var(--text-light); white-space: nowrap; }
+        .speed-group input[type="range"] { flex: 1; accent-color: var(--primary); }
+        .speed-group .speed-val { font-size: 0.78rem; color: var(--text-light); min-width: 36px; text-align: center; }
+
+        /* Prefix Table */
+        .prefix-table-container { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+        .char-cell {
+            display: flex; flex-direction: column; align-items: center;
+            border: 2px solid var(--border); border-radius: 8px;
+            min-width: 38px; text-align: center; overflow: hidden;
+            transition: all var(--transition);
+        }
+        .char-cell .char-top {
+            width: 38px; height: 38px; display: flex; align-items: center;
+            justify-content: center; font-size: 1.05rem; font-weight: 700;
+            background: #f5f8fc; text-align: center;
+        }
+        .char-cell .char-bot {
+            width: 38px; height: 38px; display: flex; align-items: center;
+            justify-content: center; font-size: 0.95rem; font-weight: 600;
+            background: #fafafa; text-align: center;
+            color: var(--teal); border-top: 1px solid var(--border);
+        }
+        .char-cell.hl { border-color: var(--warning); box-shadow: 0 0 0 2px rgba(243,156,18,0.25); }
+        .char-cell.hl .char-top { background: #fef9e7; }
+
+        /* Match Display */
+        .match-area {
+            background: #fafbfc; border-radius: var(--radius);
+            border: 1px solid var(--border); padding: 20px; overflow-x: auto;
+        }
+        .match-row {
+            display: flex; align-items: flex-start; gap: 0;
+            margin-bottom: 8px; position: relative;
+        }
+        .match-label {
+            font-size: 0.8rem; font-weight: 700; color: var(--text-light);
+            min-width: 50px; padding-top: 10px; flex-shrink: 0;
+        }
+        .match-chars {
+            display: flex; gap: 0; flex-wrap: nowrap;
+        }
+        .mchar {
+            width: 38px; height: 38px; display: flex; align-items: center;
+            justify-content: center; font-size: 1.05rem; font-weight: 700;
+            font-family: 'Consolas','Courier New',monospace;
+            border: 2px solid #dce4ec; background: #fff;
+            margin-right: -2px; /* overlap borders */
+            transition: all var(--transition); position: relative;
+            border-radius: 2px;
+        }
+        .mchar:first-child { border-radius: 6px 0 0 6px; }
+        .mchar:last-child { border-radius: 0 6px 6px 0; margin-right: 0; }
+        .mchar.idle   { background: #fff; border-color: #dce4ec; color: var(--text); }
+        .mchar.match  { background: #e8f8ef; border-color: #27ae60; color: #1a7a3a; }
+        .mchar.mismatch { background: #fde8e8; border-color: #e74c3c; color: #a82020; }
+        .mchar.current { background: #fef9e7; border-color: #f39c12; color: #8a6d14; }
+        .mchar.active-p { background: #e0f7fa; border-color: var(--teal); }
+        .mchar.pattern-offset { background: #f8f8f8; border-color: #e0e0e0; color: #ccc; }
+
+        .pointer-row {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 0.82rem; font-weight: 600; font-family: 'Consolas',monospace;
+            margin-top: 6px; color: var(--text-light); flex-wrap: wrap;
+        }
+        .pointer-i { color: var(--danger); }
+        .pointer-j { color: var(--primary); }
+
+        /* Info */
+        .info-row {
+            display: flex; justify-content: space-between;
+            font-size: 0.85rem; color: var(--text-light); padding: 3px 0;
+        }
+        .info-row span:last-child { font-weight: 700; color: var(--text); }
+        .match-positions {
+            display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;
+        }
+        .match-tag {
+            background: #e8f8ef; color: #1a7a3a; font-weight: 700;
+            padding: 3px 10px; border-radius: 14px; font-size: 0.85rem;
+        }
+        .no-match { color: #e74c3c; font-weight: 600; }
+
+        /* Log */
+        .status-log {
+            max-height: 160px; overflow-y: auto; font-size: 0.8rem;
+            color: var(--text-light); line-height: 1.6;
+        }
+        .status-log .log-entry {
+            padding: 3px 8px; border-left: 3px solid transparent;
+            margin-bottom: 2px; animation: fadeIn 0.3s;
+        }
+        .status-log .log-entry.info { border-left-color: var(--primary); background: #f5f8fc; }
+        .status-log .log-entry.success { border-left-color: var(--success); background: #f0faf4; }
+        .status-log .log-entry.warn { border-left-color: var(--warning); background: #fefaf0; }
+        .log-entry.error { border-left-color: var(--danger); background: #fef5f5; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(-6px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .btn-clear-log {
+            background: none; border: 1px solid var(--border); border-radius: 6px;
+            cursor: pointer; font-size: 0.85rem; padding: 2px 6px;
+            transition: background 0.2s; line-height: 1;
+        }
+        .btn-clear-log:hover { background: #fde8e8; border-color: var(--danger); }
+
+        @media (max-width: 900px) {
+            .main-container { flex-direction: column; height: auto; }
+            .sidebar { width: 100%; min-width: auto; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>🔤 KMP 字符串匹配算法可视化</h1>
+    <div class="subtitle">构建前缀表 → 逐字符匹配 → 失配时利用前缀信息跳转</div>
+</div>
+
+<div class="main-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="card">
+            <div class="card-title">⚙️ 控制</div>
+            <div class="speed-group">
+                <label>🐢 速度</label>
+                <input type="range" id="speedSlider" min="1" max="5" value="3" step="1">
+                <span class="speed-val" id="speedLabel">中速</span>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:10px;">
+                <button class="btn btn-run" id="btnRun" disabled>▶ 开始匹配</button>
+                <button class="btn btn-step" id="btnStep" disabled>⏭ 单步</button>
+            </div>
+            <button class="btn btn-reset" id="btnReset" style="width:100%;margin-top:6px;">🔄 重置</button>
+        </div>
+
+        <div class="card">
+            <div class="card-title">📊 匹配信息</div>
+            <div class="info-row"><span>源串长度</span><span id="infoTextLen">—</span></div>
+            <div class="info-row"><span>模式串长度</span><span id="infoPatLen">—</span></div>
+            <div class="info-row"><span>Next 数组</span><span id="infoNext" style="font-family:Consolas,monospace;font-size:0.8rem;">—</span></div>
+            <div class="info-row"><span>已比较次数</span><span id="infoComps">0</span></div>
+            <div class="info-row"><span>匹配结果</span><span id="infoResult">等待匹配</span></div>
+            <div style="font-size:0.78rem;font-weight:700;color:var(--text-light);margin-top:6px;">匹配位置：</div>
+            <div class="match-positions" id="matchPositions">
+                <span style="color:#b0b8c1;">—</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span class="card-title" style="margin-bottom:0;border-bottom:none;padding-bottom:0;">📋 匹配日志</span>
+                <button class="btn-clear-log" id="btnClearLog" title="清除日志">🗑️</button>
+            </div>
+            <div class="status-log" id="statusLog" style="margin-top:8px;">
+                <div style="color:#b0b8c1;">请输入字符串并开始匹配…</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Area -->
+    <div class="canvas-area">
+        <!-- Input -->
+        <div class="card">
+            <div class="card-title">📝 输入字符串</div>
+            <div class="input-row">
+                <div class="input-group">
+                    <label>源字符串（Text）</label>
+                    <input type="text" id="textInput" placeholder="例如: ababcabcabab" spellcheck="false">
+                </div>
+                <div class="input-group">
+                    <label>模式串（Pattern）</label>
+                    <input type="text" id="patInput" placeholder="例如: abab" spellcheck="false">
+                </div>
+                <button class="btn btn-run" id="btnStart" style="align-self:flex-end;">开始</button>
+            </div>
+        </div>
+
+        <!-- Prefix Table -->
+        <div class="card">
+            <div class="card-title">📐 前缀表（Next / LPS 数组）</div>
+            <div class="prefix-table-container" id="prefixTable">
+                <span style="color:#b0b8c1;">请先输入模式串</span>
+            </div>
+            <div id="nextResultText" style="margin-top:10px;font-size:0.85rem;color:var(--teal);font-weight:600;font-family:Consolas,monospace;"></div>
+        </div>
+
+        <!-- Match Display -->
+        <div class="card">
+            <div class="card-title">🔍 匹配过程</div>
+            <div class="match-area" id="matchArea">
+                <div style="color:#b0b8c1;text-align:center;padding:20px;">
+                    输入源串和模式串后点击"开始"
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ===========================
+// KMP 算法引擎
+// ===========================
+class KMPEngine {
+    // 计算 LPS 数组（Longest Proper Prefix which is also Suffix）
+    // lps[i] = 模式串 P[0..i] 的最长相等前后缀长度
+    // next[i] = lps[i-1]（失配时跳转位置）
+    static computeLPS(pattern) {
+        const lps = new Array(pattern.length).fill(0);
+        let len = 0; // 当前最长前后缀长度
+        let i = 1;
+        const steps = []; // 记录计算过程用于动画
+
+        steps.push({ i: 0, len: 0, char: pattern[0], lps: [...lps], desc: `初始化: lps[0]=0` });
+
+        while (i < pattern.length) {
+            if (pattern[i] === pattern[len]) {
+                len++;
+                lps[i] = len;
+                steps.push({ i, len, char: pattern[i], matchIdx: i - len + 1, lps: [...lps],
+                    desc: `匹配: P[${i}]='${pattern[i]}' == P[${len-1}]='${pattern[len-1]}', lps[${i}]=${len}` });
+                i++;
+            } else {
+                if (len !== 0) {
+                    const oldLen = len;
+                    len = lps[len - 1];
+                    steps.push({ i, len, char: pattern[i], fallback: true, fromLen: oldLen, lps: [...lps],
+                        desc: `失配回退: len=${oldLen} → lps[${oldLen-1}]=${len}` });
+                } else {
+                    lps[i] = 0;
+                    steps.push({ i, len: 0, char: pattern[i], lps: [...lps],
+                        desc: `失配: P[${i}]='${pattern[i]}' ≠ P[0], lps[${i}]=0` });
+                    i++;
+                }
+            }
+        }
+        return { lps, steps };
+    }
+
+    // 执行 KMP 搜索，记录每一步
+    static search(text, pattern) {
+        const { lps } = KMPEngine.computeLPS(pattern);
+        const steps = [];
+        let i = 0, j = 0;
+        const matches = [];
+
+        steps.push({
+            type: 'init', i: 0, j: 0, lps: [...lps],
+            desc: `开始匹配: i=0, j=0`,
+        });
+
+        while (i < text.length) {
+            if (text[i] === pattern[j]) {
+                steps.push({
+                    type: 'match', i, j, lps: [...lps],
+                    desc: `匹配: T[${i}]='${text[i]}' == P[${j}]='${pattern[j]}'`,
+                });
+                i++; j++;
+            } else {
+                if (j !== 0) {
+                    const oldJ = j;
+                    j = lps[j - 1];
+                    steps.push({
+                        type: 'fallback', i, j, oldJ, lps: [...lps],
+                        desc: `❌ T[${i}]='${text[i]}' ≠ P[${oldJ}]='${pattern[oldJ]}' → 执行 j = next[${oldJ-1}] = ${j}`,
+                    });
+                } else {
+                    steps.push({
+                        type: 'skip', i, j, lps: [...lps],
+                        desc: `❌ T[${i}]='${text[i]}' ≠ P[0]='${pattern[0]}' → 执行 i++（j=0 无法回退）`,
+                    });
+                    i++;
+                }
+            }
+
+            if (j === pattern.length) {
+                matches.push(i - j);
+                steps.push({
+                    type: 'found', i, j, matchPos: i - j, lps: [...lps],
+                    desc: `✅ 找到匹配! 位置 = ${i - j}`,
+                });
+                j = lps[j - 1];
+            }
+        }
+
+        steps.push({
+            type: 'done', i, j, lps: [...lps], matches: [...matches],
+            desc: matches.length > 0
+                ? `完成! 共找到 ${matches.length} 处匹配: [${matches.join(', ')}]`
+                : `完成! 未找到匹配`,
+        });
+
+        return { steps, lps, matches };
+    }
+}
+
+// ===========================
+// 可视化渲染
+// ===========================
+class KMPRenderer {
+    constructor() {
+        this.prefixTable = document.getElementById('prefixTable');
+        this.matchArea = document.getElementById('matchArea');
+        this.infoComps = document.getElementById('infoComps');
+        this.infoResult = document.getElementById('infoResult');
+        this.infoNext = document.getElementById('infoNext');
+        this.matchPositions = document.getElementById('matchPositions');
+        this.infoTextLen = document.getElementById('infoTextLen');
+        this.infoPatLen = document.getElementById('infoPatLen');
+        this.nextResultText = document.getElementById('nextResultText');
+    }
+
+    renderPrefixTable(pattern, lps, hlIdx = -1, hlIdx2 = -1) {
+        if (!pattern) {
+            this.prefixTable.innerHTML = '<span style="color:#b0b8c1;">请先输入模式串</span>';
+            return;
+        }
+        let html = '<div style="display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap;">';
+        html += '<div style="display:flex;flex-direction:column;gap:0;"><div style="font-size:0.72rem;font-weight:600;color:var(--text-light);padding:2px 0;">索引</div>';
+        for (let k = 0; k < pattern.length; k++) {
+            html += `<div class="char-cell${k === hlIdx || k === hlIdx2 ? ' hl' : ''}">
+                <div class="char-top" style="font-size:0.8rem;">${k}</div></div>`;
+        }
+        html += '</div>';
+
+        html += '<div style="display:flex;flex-direction:column;gap:0;"><div style="font-size:0.72rem;font-weight:600;color:var(--text-light);padding:2px 0;">P</div>';
+        for (let k = 0; k < pattern.length; k++) {
+            html += `<div class="char-cell${k === hlIdx ? ' hl' : ''}">
+                <div class="char-top">${pattern[k]}</div></div>`;
+        }
+        html += '</div>';
+
+        html += '<div style="display:flex;flex-direction:column;gap:0;"><div style="font-size:0.72rem;font-weight:600;color:var(--teal);padding:2px 0;">next</div>';
+        for (let k = 0; k < pattern.length; k++) {
+            html += `<div class="char-cell${k === hlIdx || k === hlIdx2 ? ' hl' : ''}">
+                <div class="char-bot">${lps ? lps[k] : '?'}</div></div>`;
+        }
+        html += '</div></div>';
+        this.prefixTable.innerHTML = html;
+    }
+
+    renderMatchDisplay(text, pattern, i, j, lps, desc, matchType) {
+        if (!text) {
+            this.matchArea.innerHTML = '<div style="color:#b0b8c1;text-align:center;padding:20px;">输入源串和模式串后点击"开始"</div>';
+            return;
+        }
+
+        let html = '';
+
+        // Text row
+        html += '<div class="match-row"><span class="match-label">源串 T</span><div class="match-chars">';
+        for (let ti = 0; ti < text.length; ti++) {
+            let cls = 'idle';
+            if (matchType === 'match' && ti === i) cls = 'match';
+            if (matchType === 'fallback' && ti === i) cls = 'mismatch';
+            if (matchType === 'skip' && ti === i) cls = 'mismatch';
+            if (matchType === 'found' && ti >= (i - j) && ti < (i - j) + pattern.length) cls = 'match';
+            html += `<span class="mchar ${cls}">${text[ti]}</span>`;
+        }
+        html += '</div></div>';
+
+        // Pattern row — offset so P[j] aligns under T[i]
+        const patStart = i - j;
+        html += '<div class="match-row"><span class="match-label">模式 P</span><div class="match-chars">';
+        for (let ti = 0; ti < text.length; ti++) {
+            const pj = ti - patStart;
+            if (pj >= 0 && pj < pattern.length) {
+                let cls = 'active-p';
+                if (matchType === 'match' && pj === j && ti === i) cls = 'match';
+                if ((matchType === 'fallback' || matchType === 'skip') && pj === j && ti === i) cls = 'mismatch';
+                if (matchType === 'found' && pj < pattern.length) cls = 'match';
+                html += `<span class="mchar ${cls}">${pattern[pj]}</span>`;
+            } else {
+                html += `<span class="mchar pattern-offset">·</span>`;
+            }
+        }
+        html += '</div></div>';
+
+        // Pointer row
+        html += `<div class="pointer-row">
+            <span class="pointer-i">i = ${Math.min(i, text.length)}</span>
+            <span class="pointer-j">j = ${j}</span>
+        </div>`;
+        html += `<div style="font-size:0.82rem;color:var(--text-light);margin-top:2px;">${desc}</div>`;
+
+        this.matchArea.innerHTML = html;
+        this.infoComps.textContent = (this.infoComps.textContent === '0' || this.infoComps.textContent === '—' ? 0 : parseInt(this.infoComps.textContent)) + (matchType && matchType !== 'init' && matchType !== 'done' ? 1 : 0);
+    }
+}
+
+// ===========================
+// 应用控制器
+// ===========================
+class KMPController {
+    constructor() {
+        this.text = '';
+        this.pattern = '';
+        this.lps = null;
+        this.steps = null;
+        this.curStep = 0;
+        this.animating = false;
+        this.rend = new KMPRenderer();
+
+        this.textInput = document.getElementById('textInput');
+        this.patInput = document.getElementById('patInput');
+        this.btnRun = document.getElementById('btnRun');
+        this.btnStep = document.getElementById('btnStep');
+        this.btnStart = document.getElementById('btnStart');
+        this.statusLog = document.getElementById('statusLog');
+        this.speedSlider = document.getElementById('speedSlider');
+        this.speedLabel = document.getElementById('speedLabel');
+
+        this.initEvents();
+        this.loadFromStorage();
+    }
+
+    get delay() {
+        return [1200, 800, 500, 300, 150][this.speedSlider.value - 1] || 500;
+    }
+    get speedText() {
+        return ['很慢','慢','中速','快','极快'][this.speedSlider.value - 1] || '中速';
+    }
+
+    sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    log(msg, type='info') {
+        const e = document.createElement('div');
+        e.className = `log-entry ${type}`; e.textContent = msg;
+        this.statusLog.appendChild(e);
+        this.statusLog.scrollTop = this.statusLog.scrollHeight;
+        while (this.statusLog.children.length > 50) this.statusLog.removeChild(this.statusLog.firstChild);
+    }
+
+    initEvents() {
+        this.btnStart.addEventListener('click', () => this.handleStart());
+        this.btnRun.addEventListener('click', () => this.handleRun());
+        this.btnStep.addEventListener('click', () => this.handleStep());
+        document.getElementById('btnReset').addEventListener('click', () => this.handleReset());
+        document.getElementById('btnClearLog').addEventListener('click', () => {
+            this.statusLog.innerHTML = '<div style="color:#b0b8c1;">日志已清除</div>';
+        });
+        this.speedSlider.addEventListener('input', () => {
+            this.speedLabel.textContent = this.speedText;
+        });
+        this.textInput.addEventListener('keydown', e => { if (e.key === 'Enter') this.patInput.focus(); });
+        this.patInput.addEventListener('keydown', e => { if (e.key === 'Enter') this.handleStart(); });
+        this.patInput.addEventListener('input', () => this.onPatternInput());
+        window.addEventListener('beforeunload', () => this.saveToStorage());
+    }
+
+    saveToStorage() {
+        localStorage.setItem('kmp_text', this.textInput.value);
+        localStorage.setItem('kmp_pattern', this.patInput.value);
+        localStorage.setItem('kmp_lps', JSON.stringify(this.lps));
+    }
+
+    loadFromStorage() {
+        const t = localStorage.getItem('kmp_text');
+        const p = localStorage.getItem('kmp_pattern');
+        if (t !== null) this.textInput.value = t;
+        if (p !== null) this.patInput.value = p;
+        if (t || p) {
+            this.text = this.textInput.value;
+            this.pattern = this.patInput.value;
+            if (this.pattern) {
+                this.onPatternInput();
+            }
+            this.rend.infoTextLen.textContent = this.text.length;
+            this.rend.infoPatLen.textContent = this.pattern.length;
+            if (this.text && this.pattern) {
+                this.btnRun.disabled = false;
+                this.btnStep.disabled = false;
+            }
+        }
+    }
+
+    // 输入模式串时实时更新前缀表
+    onPatternInput() {
+        const p = this.patInput.value;
+        if (!p) {
+            this.rend.renderPrefixTable('', null);
+            this.rend.infoNext.textContent = '—';
+            this.rend.nextResultText.innerHTML = '';
+            return;
+        }
+        const { lps } = KMPEngine.computeLPS(p);
+        this.lps = lps;
+        this.rend.renderPrefixTable(p, this.lps);
+        this.rend.infoNext.textContent = `[ ${lps.join(', ')} ]`;
+        this.rend.nextResultText.innerHTML =
+            `<span style="color:var(--text);">Next 数组结果：</span>
+             <span style="color:var(--teal);">next = [ ${lps.map((v,k) => `P[${k}]=${v}`).join(', ')} ]</span>
+             <span style="color:var(--text-light);font-weight:400;font-size:0.78rem;">（失配时 j = next[j-1]）</span>`;
+        console.log(`KMP Next 数组 [${p}]:`, lps);
+    }
+
+    async handleStart() {
+        if (this.animating) return;
+        this.text = this.textInput.value;
+        this.pattern = this.patInput.value;
+
+        if (!this.text) { this.log('⚠️ 请输入源字符串', 'warn'); return; }
+        if (!this.pattern) { this.log('⚠️ 请输入模式串', 'warn'); return; }
+        if (this.pattern.length > this.text.length) {
+            this.log('⚠️ 模式串不能比源串长', 'warn');
+            return;
+        }
+
+        // Compute LPS (确保使用最新的模式串)
+        const { lps } = KMPEngine.computeLPS(this.pattern);
+        this.lps = lps;
+        this.rend.renderPrefixTable(this.pattern, this.lps);
+        this.rend.infoNext.textContent = `[ ${lps.join(', ')} ]`;
+        this.rend.nextResultText.innerHTML =
+            `<span style="color:var(--text);">Next 数组结果：</span>
+             <span style="color:var(--teal);">next = [ ${lps.map((v,k) => `P[${k}]=${v}`).join(', ')} ]</span>
+             <span style="color:var(--text-light);font-weight:400;font-size:0.78rem;">（失配时 j = next[j-1]）</span>`;
+        this.log(`📐 Next 数组: [${lps.join(', ')}]`, 'info');
+        console.log(`KMP Next 数组 [${this.pattern}]:`, lps);
+
+        // KMP search
+        const result = KMPEngine.search(this.text, this.pattern);
+        this.steps = result.steps;
+        this.matches = result.matches;
+        this.curStep = 0;
+
+        this.rend.infoTextLen.textContent = this.text.length;
+        this.rend.infoPatLen.textContent = this.pattern.length;
+        this.rend.infoComps.textContent = '0';
+        this.rend.infoResult.textContent = '匹配中…';
+        this.rend.matchPositions.innerHTML = '<span style="color:#b0b8c1;">—</span>';
+
+        this.btnRun.disabled = false;
+        this.btnStep.disabled = false;
+        this.saveToStorage();
+
+        // Show first step
+        const s0 = this.steps[0];
+        this.rend.renderMatchDisplay(this.text, this.pattern, s0.i, s0.j, s0.lps, s0.desc, s0.type);
+        this.log(`🔍 ${s0.desc}`, 'info');
+
+        if (this.steps.length > 1) {
+            this.btnRun.disabled = false;
+            this.btnStep.disabled = false;
+        }
+    }
+
+    async handleRun() {
+        if (this.animating) return;
+        if (!this.steps || this.curStep >= this.steps.length - 1) return;
+
+        this.animating = true;
+        this.btnStart.disabled = true;
+        this.btnRun.disabled = true;
+        this.btnStep.disabled = true;
+
+        for (let k = this.curStep + 1; k < this.steps.length; k++) {
+            this.curStep = k;
+            const s = this.steps[k];
+
+            // Highlight prefix table cell
+            if (s.type === 'match' && s.j < this.pattern.length) {
+                this.rend.renderPrefixTable(this.pattern, this.lps, s.j);
+            } else if (s.type === 'fallback') {
+                this.rend.renderPrefixTable(this.pattern, this.lps, s.j);
+            } else {
+                this.rend.renderPrefixTable(this.pattern, this.lps);
+            }
+
+            this.rend.renderMatchDisplay(this.text, this.pattern, s.i, s.j, s.lps, s.desc, s.type);
+
+            const logType = s.type === 'found' ? 'success' : (s.type === 'fallback' || s.type === 'skip' ? 'warn' : 'info');
+            this.log(s.desc, logType);
+
+            if (s.type === 'found') {
+                this.rend.matchPositions.innerHTML = this.matches.map(p =>
+                    `<span class="match-tag">${p}</span>`
+                ).join('');
+            }
+            if (s.type === 'done') {
+                if (s.matches && s.matches.length > 0) {
+                    this.rend.infoResult.textContent = `✅ 找到 ${s.matches.length} 处`;
+                    this.rend.matchPositions.innerHTML = s.matches.map(p =>
+                        `<span class="match-tag">${p}</span>`
+                    ).join('');
+                } else {
+                    this.rend.infoResult.innerHTML = '<span class="no-match">❌ 未找到</span>';
+                }
+            }
+
+            await this.sleep(this.delay);
+        }
+
+        this.animating = false;
+        this.btnStart.disabled = false;
+        this.btnStep.disabled = true;
+        this.btnRun.disabled = true;
+    }
+
+    async handleStep() {
+        if (this.animating || !this.steps) return;
+        if (this.curStep >= this.steps.length - 1) return;
+
+        this.curStep++;
+        const s = this.steps[this.curStep];
+
+        if (s.type === 'match' && s.j < this.pattern.length) {
+            this.rend.renderPrefixTable(this.pattern, this.lps, s.j);
+        } else if (s.type === 'fallback') {
+            this.rend.renderPrefixTable(this.pattern, this.lps, s.j);
+        } else {
+            this.rend.renderPrefixTable(this.pattern, this.lps);
+        }
+
+        this.rend.renderMatchDisplay(this.text, this.pattern, s.i, s.j, s.lps, s.desc, s.type);
+
+        const logType = s.type === 'found' ? 'success' : (s.type === 'fallback' || s.type === 'skip' ? 'warn' : 'info');
+        this.log(s.desc, logType);
+
+        if (s.type === 'found') {
+            this.rend.matchPositions.innerHTML = this.matches.map(p =>
+                `<span class="match-tag">${p}</span>`
+            ).join('');
+        }
+        if (s.type === 'done') {
+            if (s.matches && s.matches.length > 0) {
+                this.rend.infoResult.textContent = `✅ 找到 ${s.matches.length} 处`;
+            } else {
+                this.rend.infoResult.innerHTML = '<span class="no-match">❌ 未找到</span>';
+            }
+            this.btnStep.disabled = true;
+            this.btnRun.disabled = true;
+        }
+    }
+
+    handleReset() {
+        this.text = ''; this.pattern = ''; this.lps = null;
+        this.steps = null; this.curStep = 0; this.matches = [];
+        this.textInput.value = ''; this.patInput.value = '';
+        this.rend.renderPrefixTable('', null);
+        this.rend.matchArea.innerHTML = '<div style="color:#b0b8c1;text-align:center;padding:20px;">输入源串和模式串后点击"开始"</div>';
+        this.rend.infoTextLen.textContent = '—';
+        this.rend.infoPatLen.textContent = '—';
+        this.rend.infoNext.textContent = '—';
+        this.rend.nextResultText.innerHTML = '';
+        this.rend.infoComps.textContent = '0';
+        this.rend.infoResult.textContent = '等待匹配';
+        this.rend.matchPositions.innerHTML = '<span style="color:#b0b8c1;">—</span>';
+        this.statusLog.innerHTML = '';
+        this.btnRun.disabled = true;
+        this.btnStep.disabled = true;
+        localStorage.removeItem('kmp_text');
+        localStorage.removeItem('kmp_pattern');
+        localStorage.removeItem('kmp_lps');
+        this.log('🔄 已重置', 'info');
+    }
+}
+
+// ===========================
+// 启动
+// ===========================
+document.addEventListener('DOMContentLoaded', () => {
+    window.kmpApp = new KMPController();
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>二叉排序树 (BST) — 增删过程可视化</title>
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --card-bg: #ffffff;
+            --primary: #4a90d9;
+            --danger: #e74c3c;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --purple: #8e44ad;
+            --text: #2c3e50;
+            --text-light: #636e72;
+            --border: #e0e4e8;
+            --shadow: 0 2px 12px rgba(0,0,0,0.08);
+            --radius: 10px;
+            --transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* ===== Header ===== */
+        .header {
+            width: 100%;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: #fff;
+            padding: 16px 24px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .header h1 {
+            font-size: 1.6rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        .header .subtitle {
+            font-size: 0.85rem;
+            opacity: 0.75;
+            margin-top: 2px;
+        }
+
+        /* ===== Main Layout ===== */
+        .main-container {
+            display: flex;
+            flex: 1;
+            width: 100%;
+            max-width: 1400px;
+            gap: 16px;
+            padding: 16px;
+            height: calc(100vh - 90px);
+        }
+
+        /* ===== Sidebar ===== */
+        .sidebar {
+            width: 300px;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 16px;
+            border: 1px solid var(--border);
+        }
+        .card-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 6px;
+            display: inline-block;
+        }
+
+        /* Input Area */
+        .input-group {
+            display: flex;
+            gap: 8px;
+        }
+        .input-group input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: border 0.2s;
+        }
+        .input-group input:focus {
+            border-color: var(--primary);
+        }
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        .btn:active {
+            transform: scale(0.96);
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .btn-insert {
+            background: var(--success);
+            color: #fff;
+        }
+        .btn-insert:hover:not(:disabled) {
+            background: #219a52;
+        }
+        .btn-delete {
+            background: var(--danger);
+            color: #fff;
+        }
+        .btn-delete:hover:not(:disabled) {
+            background: #c0392b;
+        }
+        .btn-reset {
+            background: #636e72;
+            color: #fff;
+            width: 100%;
+        }
+        .btn-reset:hover:not(:disabled) {
+            background: #4a5559;
+        }
+        .btn-random {
+            background: var(--purple);
+            color: #fff;
+        }
+        .btn-random:hover:not(:disabled) {
+            background: #732d91;
+        }
+        .btn-traverse {
+            background: #00bcd4;
+            color: #fff;
+            font-size: 0.82rem;
+            padding: 8px 10px;
+        }
+        .btn-traverse:hover:not(:disabled) {
+            background: #0097a7;
+        }
+        .btn-traverse.active {
+            background: #006064;
+            box-shadow: 0 0 0 3px rgba(0,188,212,0.35);
+        }
+        .btn-row {
+            display: flex;
+            gap: 8px;
+        }
+        .btn-row .btn {
+            flex: 1;
+        }
+
+        /* Speed Control */
+        .speed-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 4px;
+        }
+        .speed-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-light);
+            white-space: nowrap;
+        }
+        .speed-group input[type="range"] {
+            flex: 1;
+            accent-color: var(--primary);
+        }
+        .speed-group .speed-val {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            min-width: 40px;
+            text-align: center;
+        }
+
+        /* Tree Info */
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--text-light);
+            padding: 4px 0;
+        }
+        .info-row span:last-child {
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 4px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.78rem;
+            color: var(--text-light);
+        }
+        .legend-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid rgba(0,0,0,0.15);
+        }
+
+        /* ===== SVG Canvas ===== */
+        .canvas-container {
+            flex: 1;
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            overflow: auto;
+            position: relative;
+            min-height: 400px;
+        }
+        .canvas-container svg {
+            width: 100%;
+            height: 100%;
+            min-width: 600px;
+            min-height: 400px;
+        }
+        .empty-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #b0b8c1;
+            font-size: 1.2rem;
+            text-align: center;
+            pointer-events: none;
+        }
+        .empty-message .icon {
+            font-size: 3rem;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        /* SVG Node Styles */
+        .node-circle {
+            transition: fill var(--transition), stroke var(--transition), stroke-width var(--transition);
+        }
+        .node-circle.default {
+            fill: #ebf2fa;
+            stroke: #4a90d9;
+            stroke-width: 2.5;
+        }
+        .node-circle.search-path {
+            fill: #fef3e0;
+            stroke: #f39c12;
+            stroke-width: 3;
+        }
+        .node-circle.found {
+            fill: #fde8e8;
+            stroke: #e74c3c;
+            stroke-width: 3.5;
+        }
+        .node-circle.successor {
+            fill: #f3e8f9;
+            stroke: #8e44ad;
+            stroke-width: 3.5;
+        }
+        .node-circle.new-node {
+            fill: #e8f8ef;
+            stroke: #27ae60;
+            stroke-width: 3.5;
+        }
+        .node-circle.traverse {
+            fill: #e0f7fa;
+            stroke: #00bcd4;
+            stroke-width: 3.5;
+        }
+        .node-text {
+            font-size: 15px;
+            font-weight: 700;
+            fill: #2c3e50;
+            text-anchor: middle;
+            dominant-baseline: central;
+            pointer-events: none;
+            transition: fill var(--transition);
+        }
+        .edge-line {
+            stroke: #b0bec5;
+            stroke-width: 2;
+            stroke-linecap: round;
+            transition: stroke var(--transition), stroke-width var(--transition);
+        }
+        .edge-line.highlight {
+            stroke: #f39c12;
+            stroke-width: 2.5;
+        }
+
+        /* Status Log */
+        .status-log {
+            max-height: 180px;
+            overflow-y: auto;
+            font-size: 0.82rem;
+            color: var(--text-light);
+            line-height: 1.6;
+        }
+        .status-log .log-entry {
+            padding: 4px 8px;
+            border-left: 3px solid transparent;
+            margin-bottom: 2px;
+            animation: fadeIn 0.3s;
+        }
+        .status-log .log-entry.info {
+            border-left-color: var(--primary);
+            background: #f5f8fc;
+        }
+        .status-log .log-entry.success {
+            border-left-color: var(--success);
+            background: #f0faf4;
+        }
+        .status-log .log-entry.warn {
+            border-left-color: var(--warning);
+            background: #fefaf0;
+        }
+        .status-log .log-entry.error {
+            border-left-color: var(--danger);
+            background: #fef5f5;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(-8px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Traverse Result */
+        .traverse-result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8fafc;
+            border-radius: 8px;
+            min-height: 36px;
+            font-size: 0.85rem;
+            color: var(--text);
+            line-height: 1.7;
+            word-break: break-all;
+        }
+        .traverse-placeholder {
+            color: #b0b8c1;
+            font-size: 0.8rem;
+        }
+        .traverse-sequence {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .traverse-token {
+            display: inline-block;
+            background: #e0f7fa;
+            color: #006064;
+            font-weight: 700;
+            padding: 2px 10px;
+            border-radius: 14px;
+            font-size: 0.85rem;
+            animation: popIn 0.3s ease;
+        }
+        @keyframes popIn {
+            from { transform: scale(0); opacity: 0; }
+            to   { transform: scale(1); opacity: 1; }
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .main-container {
+                flex-direction: column;
+                height: auto;
+            }
+            .sidebar {
+                width: 100%;
+                min-width: auto;
+            }
+            .canvas-container {
+                min-height: 350px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+    <h1>🌳 二叉排序树（BST）可视化</h1>
+    <div class="subtitle">动态演示插入与删除的全过程</div>
+</div>
+
+<!-- Main -->
+<div class="main-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <!-- 操作面板 -->
+        <div class="card">
+            <div class="card-title">⚡ 操作</div>
+            <div class="input-group">
+                <input type="number" id="valueInput" placeholder="输入一个整数…" autofocus>
+                <button class="btn btn-insert" id="btnInsert">插入</button>
+            </div>
+            <div class="btn-row" style="margin-top:8px;">
+                <button class="btn btn-delete" id="btnDelete">删除</button>
+                <button class="btn btn-random" id="btnRandom">随机插入</button>
+            </div>
+            <button class="btn btn-reset" id="btnReset" style="margin-top:8px;">🔄 重置树</button>
+            <div class="speed-group">
+                <label>🐢 速度</label>
+                <input type="range" id="speedSlider" min="1" max="5" value="3" step="1">
+                <span class="speed-val" id="speedLabel">中速</span>
+            </div>
+        </div>
+
+        <!-- 树信息 -->
+        <div class="card">
+            <div class="card-title">📊 树信息</div>
+            <div class="info-row"><span>节点总数</span><span id="nodeCount">0</span></div>
+            <div class="info-row"><span>树的高度</span><span id="treeHeight">0</span></div>
+            <div class="info-row"><span>是否为 BST</span><span id="isBST">—</span></div>
+        </div>
+
+        <!-- 遍历 -->
+        <div class="card">
+            <div class="card-title">🔍 遍历</div>
+            <div class="btn-row">
+                <button class="btn btn-traverse" id="btnPreorder">先序</button>
+                <button class="btn btn-traverse" id="btnInorder">中序</button>
+                <button class="btn btn-traverse" id="btnPostorder">后序</button>
+            </div>
+            <div class="traverse-result" id="traverseResult">
+                <span class="traverse-placeholder">点击上方按钮查看遍历结果</span>
+            </div>
+        </div>
+
+        <!-- 图例 -->
+        <div class="card">
+            <div class="card-title">🎨 图例</div>
+            <div class="legend">
+                <div class="legend-item"><span class="legend-dot" style="background:#ebf2fa;border-color:#4a90d9;"></span> 普通节点</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#fef3e0;border-color:#f39c12;"></span> 搜索路径</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#fde8e8;border-color:#e74c3c;"></span> 目标节点</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#f3e8f9;border-color:#8e44ad;"></span> 后继节点</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#e8f8ef;border-color:#27ae60;"></span> 新插入</div>
+            </div>
+        </div>
+
+        <!-- 操作日志 -->
+        <div class="card">
+            <div class="card-title">📋 操作日志</div>
+            <div class="status-log" id="statusLog">
+                <div style="color:#b0b8c1;">等待操作…</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SVG Canvas -->
+    <div class="canvas-container" id="canvasContainer">
+        <svg id="treeSvg"></svg>
+        <div class="empty-message" id="emptyMessage">
+            <span class="icon">🌱</span>
+            请输入一个数字作为根节点开始构建树
+        </div>
+    </div>
+</div>
+
+<script>
+// ===========================
+// BST 节点
+// ===========================
+class BSTNode {
+    constructor(value) {
+        this.value = value;
+        this.left = null;
+        this.right = null;
+    }
+}
+
+// ===========================
+// BST 数据结构
+// ===========================
+class BST {
+    constructor() {
+        this.root = null;
+        this.nodeCount = 0;
+    }
+
+    insert(value) {
+        if (this.root === null) {
+            this.root = new BSTNode(value);
+            this.nodeCount = 1;
+            return { success: true, path: [this.root] };
+        }
+        const path = [];
+        let curr = this.root;
+        while (true) {
+            path.push(curr);
+            if (value === curr.value) {
+                return { success: false, path, reason: 'duplicate' };
+            }
+            if (value < curr.value) {
+                if (curr.left === null) {
+                    curr.left = new BSTNode(value);
+                    this.nodeCount++;
+                    return { success: true, path, parent: curr, side: 'left' };
+                }
+                curr = curr.left;
+            } else {
+                if (curr.right === null) {
+                    curr.right = new BSTNode(value);
+                    this.nodeCount++;
+                    return { success: true, path, parent: curr, side: 'right' };
+                }
+                curr = curr.right;
+            }
+        }
+    }
+
+    delete(value) {
+        const searchPath = [];
+        let parent = null;
+        let curr = this.root;
+        let side = null;
+
+        // 查找要删除的节点
+        while (curr !== null) {
+            searchPath.push(curr);
+            if (value === curr.value) break;
+            parent = curr;
+            if (value < curr.value) {
+                curr = curr.left;
+                side = 'left';
+            } else {
+                curr = curr.right;
+                side = 'right';
+            }
+        }
+
+        if (curr === null) {
+            return { success: false, searchPath, reason: 'not_found' };
+        }
+
+        const target = curr;
+        const targetParent = parent;
+        const targetSide = side;
+
+        // Case 1 & 2: 0-1 个孩子
+        if (target.left === null || target.right === null) {
+            const child = target.left || target.right;
+            const successorPath = [];
+
+            if (targetParent === null) {
+                this.root = child;
+            } else if (targetSide === 'left') {
+                targetParent.left = child;
+            } else {
+                targetParent.right = child;
+            }
+            this.nodeCount--;
+            return {
+                success: true,
+                searchPath,
+                target,
+                deletedNode: target,
+                successorPath,
+                successor: null,
+                caseType: (target.left === null && target.right === null) ? 'leaf' : 'one_child'
+            };
+        }
+
+        // Case 3: 2 个孩子 — 找中序后继
+        const successorPath = [];
+        let succParent = target;
+        let succ = target.right;
+        successorPath.push(succ);
+
+        while (succ.left !== null) {
+            succParent = succ;
+            succ = succ.left;
+            successorPath.push(succ);
+        }
+
+        // 用后继的值替换目标值
+        target.value = succ.value;
+
+        // 删除后继节点（最多一个右孩子）
+        if (succParent === target) {
+            succParent.right = succ.right;
+        } else {
+            succParent.left = succ.right;
+        }
+
+        this.nodeCount--;
+        return {
+            success: true,
+            searchPath,
+            target,
+            deletedNode: succ,
+            successorPath,
+            successor: succ,
+            caseType: 'two_children'
+        };
+    }
+
+    // 验证 BST 性质
+    isBST(node = this.root, min = -Infinity, max = Infinity) {
+        if (node === null) return true;
+        if (node.value <= min || node.value >= max) return false;
+        return this.isBST(node.left, min, node.value) && this.isBST(node.right, node.value, max);
+    }
+
+    // 计算高度
+    height(node = this.root) {
+        if (node === null) return 0;
+        return 1 + Math.max(this.height(node.left), this.height(node.right));
+    }
+
+    // 先序遍历
+    preorder(node = this.root, result = []) {
+        if (node === null) return result;
+        result.push(node);
+        this.preorder(node.left, result);
+        this.preorder(node.right, result);
+        return result;
+    }
+
+    // 中序遍历
+    inorder(node = this.root, result = []) {
+        if (node === null) return result;
+        this.inorder(node.left, result);
+        result.push(node);
+        this.inorder(node.right, result);
+        return result;
+    }
+
+    // 后序遍历
+    postorder(node = this.root, result = []) {
+        if (node === null) return result;
+        this.postorder(node.left, result);
+        this.postorder(node.right, result);
+        result.push(node);
+        return result;
+    }
+
+    // 序列化整棵树到 localStorage（保留精确树形）
+    saveToStorage() {
+        const serialize = (node) => {
+            if (!node) return null;
+            return { v: node.value, l: serialize(node.left), r: serialize(node.right) };
+        };
+        const data = serialize(this.root);
+        if (data === null) {
+            localStorage.removeItem('bst_tree_data');
+        } else {
+            localStorage.setItem('bst_tree_data', JSON.stringify(data));
+        }
+    }
+
+    // 从 localStorage 反序列化恢复树
+    loadFromStorage() {
+        const raw = localStorage.getItem('bst_tree_data');
+        if (!raw) return false;
+        try {
+            const data = JSON.parse(raw);
+            const deserialize = (obj) => {
+                if (!obj) return null;
+                const node = new BSTNode(obj.v);
+                node.left = deserialize(obj.l);
+                node.right = deserialize(obj.r);
+                return node;
+            };
+            this.root = deserialize(data);
+            this.nodeCount = this.inorder().length;
+            return true;
+        } catch (e) {
+            localStorage.removeItem('bst_tree_data');
+            return false;
+        }
+    }
+}
+
+// ===========================
+// 可视化引擎
+// ===========================
+class BSTVisualizer {
+    constructor(svg, bst, options = {}) {
+        this.svg = svg;
+        this.bst = bst;
+        this.H_GAP = options.hGap || 55;
+        this.V_GAP = options.vGap || 75;
+        this.NODE_R = options.nodeR || 24;
+        this.animating = false;
+
+        // 跟踪 SVG 元素（按节点值映射，用唯一 id 区分重复值）
+        this.nodeElements = new Map(); // key -> { group, circle, text }
+        this.edgeElements = new Map(); // key -> line
+        this.nodeIdCounter = 0;
+    }
+
+    // 为节点生成唯一 key（基于插入顺序）
+    getNodeKey(node) {
+        if (!node._key) {
+            node._key = ++this.nodeIdCounter;
+        }
+        return node._key;
+    }
+
+    // 清除所有高亮
+    clearAllHighlights() {
+        const nodes = this.bst.inorder();
+        nodes.forEach(n => { n._highlight = null; });
+    }
+
+    // 计算布局（中序遍历分配 x 坐标）
+    calculateLayout() {
+        const nodes = this.bst.inorder();
+        const depthMap = new Map();
+
+        const assignDepth = (node, depth) => {
+            if (!node) return;
+            depthMap.set(node, depth);
+            assignDepth(node.left, depth + 1);
+            assignDepth(node.right, depth + 1);
+        };
+        assignDepth(this.bst.root, 0);
+
+        nodes.forEach((node, i) => {
+            node._layoutX = (i + 1) * this.H_GAP;
+            node._layoutY = (depthMap.get(node) || 0) * this.V_GAP + this.V_GAP / 2;
+        });
+
+        const totalW = (nodes.length + 1) * this.H_GAP + 40;
+        const maxDepth = this.bst.height();
+        const totalH = maxDepth * this.V_GAP + 80;
+        return { totalW: Math.max(totalW, 300), totalH: Math.max(totalH, 250) };
+    }
+
+    // 渲染完整树
+    render(animating = false) {
+        const { totalW, totalH } = this.calculateLayout();
+        this.svg.setAttribute('viewBox', `0 0 ${totalW} ${totalH}`);
+        this.svg.style.minWidth = totalW + 'px';
+        this.svg.style.minHeight = totalH + 'px';
+
+        // 收集当前树中所有节点
+        const allNodes = this.bst.inorder();
+        const currentNodeKeys = new Set(allNodes.map(n => this.getNodeKey(n)));
+        const currentEdgeKeys = new Set();
+
+        // 需要移除的元素
+        const toRemoveNodes = [];
+        this.nodeElements.forEach((el, key) => {
+            if (!currentNodeKeys.has(key)) toRemoveNodes.push(key);
+        });
+        const toRemoveEdges = [];
+        this.edgeElements.forEach((el, key) => {
+            toRemoveEdges.push(key);
+        });
+
+        // 先移除旧边
+        toRemoveEdges.forEach(key => {
+            const el = this.edgeElements.get(key);
+            if (el && el.parentNode) el.parentNode.removeChild(el);
+            this.edgeElements.delete(key);
+        });
+
+        // 移除旧节点
+        toRemoveNodes.forEach(key => {
+            const el = this.nodeElements.get(key);
+            if (el && el.group && el.group.parentNode) {
+                el.group.parentNode.removeChild(el.group);
+            }
+            this.nodeElements.delete(key);
+        });
+
+        // 确保有 defs（用于箭头等，这里不需要但保留习惯）
+        if (!this.svg.querySelector('defs')) {
+            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            this.svg.insertBefore(defs, this.svg.firstChild);
+        }
+
+        // 计算连线与圆周的交点（线段从圆心到圆心，截断在圆周边界）
+        const edgeEndpoints = (x1, y1, x2, y2) => {
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist === 0) return { sx: x1, sy: y1, ex: x2, ey: y2 };
+            const r = this.NODE_R;
+            const sx = x1 + (dx / dist) * r;
+            const sy = y1 + (dy / dist) * r;
+            const ex = x2 - (dx / dist) * r;
+            const ey = y2 - (dy / dist) * r;
+            return { sx, sy, ex, ey };
+        };
+
+        // 绘制边
+        const drawEdges = (node) => {
+            if (!node) return;
+            const parentKey = this.getNodeKey(node);
+            if (node.left) {
+                const childKey = this.getNodeKey(node.left);
+                const edgeKey = `${parentKey}-${childKey}`;
+                currentEdgeKeys.add(edgeKey);
+                const ep = edgeEndpoints(node._layoutX, node._layoutY,
+                    node.left._layoutX, node.left._layoutY);
+                this.drawEdge(edgeKey, ep.sx, ep.sy, ep.ex, ep.ey);
+                drawEdges(node.left);
+            }
+            if (node.right) {
+                const childKey = this.getNodeKey(node.right);
+                const edgeKey = `${parentKey}-${childKey}`;
+                currentEdgeKeys.add(edgeKey);
+                const ep = edgeEndpoints(node._layoutX, node._layoutY,
+                    node.right._layoutX, node.right._layoutY);
+                this.drawEdge(edgeKey, ep.sx, ep.sy, ep.ex, ep.ey);
+                drawEdges(node.right);
+            }
+        };
+        drawEdges(this.bst.root);
+
+        // 绘制节点
+        allNodes.forEach(node => {
+            this.drawNode(node);
+        });
+
+        return { totalW, totalH };
+    }
+
+    drawEdge(key, x1, y1, x2, y2) {
+        let line = this.edgeElements.get(key);
+        if (!line) {
+            line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.classList.add('edge-line');
+            this.svg.appendChild(line);
+            this.edgeElements.set(key, line);
+        }
+        line.setAttribute('x1', x1);
+        line.setAttribute('y1', y1);
+        line.setAttribute('x2', x2);
+        line.setAttribute('y2', y2);
+        return line;
+    }
+
+    drawNode(node) {
+        const key = this.getNodeKey(node);
+        const cx = node._layoutX;
+        const cy = node._layoutY;
+        const r = this.NODE_R;
+
+        let group, circle, text;
+        const existing = this.nodeElements.get(key);
+
+        if (existing) {
+            group = existing.group;
+            circle = existing.circle;
+            text = existing.text;
+        } else {
+            group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            group.appendChild(circle);
+            group.appendChild(text);
+            this.svg.appendChild(group);
+            this.nodeElements.set(key, { group, circle, text });
+        }
+
+        // 设置位置
+        group.setAttribute('transform', `translate(${cx}, ${cy})`);
+        circle.setAttribute('r', r);
+
+        // 根据高亮状态设置样式
+        let circleClass = 'default';
+        if (node._highlight === 'search') circleClass = 'search-path';
+        else if (node._highlight === 'found') circleClass = 'found';
+        else if (node._highlight === 'successor') circleClass = 'successor';
+        else if (node._highlight === 'new') circleClass = 'new-node';
+        else if (node._highlight === 'traverse') circleClass = 'traverse';
+
+        circle.setAttribute('class', `node-circle ${circleClass}`);
+        text.setAttribute('class', 'node-text');
+        text.textContent = node.value;
+    }
+
+    // 居中显示
+    centerTree() {
+        const container = document.getElementById('canvasContainer');
+        if (container) {
+            const svgRect = this.svg.getBoundingClientRect();
+            const containerRect = container.getBoundingClientRect();
+            if (svgRect.width > containerRect.width) {
+                container.scrollLeft = (svgRect.width - containerRect.width) / 2;
+            }
+            if (svgRect.height > containerRect.height) {
+                container.scrollTop = 0;
+            }
+        }
+    }
+}
+
+// ===========================
+// 应用控制器
+// ===========================
+class AppController {
+    constructor() {
+        this.bst = new BST();
+        this.svg = document.getElementById('treeSvg');
+        this.visualizer = new BSTVisualizer(this.svg, this.bst);
+        this.animating = false;
+
+        // DOM 元素
+        this.valueInput = document.getElementById('valueInput');
+        this.btnInsert = document.getElementById('btnInsert');
+        this.btnDelete = document.getElementById('btnDelete');
+        this.btnReset = document.getElementById('btnReset');
+        this.btnRandom = document.getElementById('btnRandom');
+        this.btnPreorder = document.getElementById('btnPreorder');
+        this.btnInorder = document.getElementById('btnInorder');
+        this.btnPostorder = document.getElementById('btnPostorder');
+        this.traverseResult = document.getElementById('traverseResult');
+        this.speedSlider = document.getElementById('speedSlider');
+        this.speedLabel = document.getElementById('speedLabel');
+        this.statusLog = document.getElementById('statusLog');
+        this.emptyMessage = document.getElementById('emptyMessage');
+        this.nodeCountEl = document.getElementById('nodeCount');
+        this.treeHeightEl = document.getElementById('treeHeight');
+        this.isBSTEl = document.getElementById('isBST');
+
+        // 尝试从 localStorage 恢复上次的树
+        const restored = this.bst.loadFromStorage();
+
+        this.initEvents();
+        this.updateInfo();
+
+        if (restored) {
+            this.visualizer.render();
+            this.visualizer.centerTree();
+            this.log('📂 已恢复上次的树', 'info');
+        }
+    }
+
+    // 动画延迟（毫秒）
+    get delay() {
+        const speeds = [1200, 800, 500, 300, 150];
+        return speeds[this.speedSlider.value - 1] || 500;
+    }
+
+    // 速度标签
+    get speedText() {
+        const labels = ['很慢', '慢', '中速', '快', '极快'];
+        return labels[this.speedSlider.value - 1] || '中速';
+    }
+
+    initEvents() {
+        this.btnInsert.addEventListener('click', () => this.handleInsert());
+        this.btnDelete.addEventListener('click', () => this.handleDelete());
+        this.btnReset.addEventListener('click', () => this.handleReset());
+        this.btnRandom.addEventListener('click', () => this.handleRandomInsert());
+        this.speedSlider.addEventListener('input', () => {
+            this.speedLabel.textContent = this.speedText;
+        });
+        this.btnPreorder.addEventListener('click', () => this.handleTraverse('preorder'));
+        this.btnInorder.addEventListener('click', () => this.handleTraverse('inorder'));
+        this.btnPostorder.addEventListener('click', () => this.handleTraverse('postorder'));
+        this.valueInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') this.handleInsert();
+        });
+    }
+
+    setButtonsEnabled(enabled) {
+        [this.btnInsert, this.btnDelete, this.btnReset, this.btnRandom,
+         this.btnPreorder, this.btnInorder, this.btnPostorder].forEach(b => {
+            b.disabled = !enabled;
+        });
+        this.valueInput.disabled = !enabled;
+    }
+
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    log(msg, type = 'info') {
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${type}`;
+        entry.textContent = msg;
+        this.statusLog.appendChild(entry);
+        this.statusLog.scrollTop = this.statusLog.scrollHeight;
+
+        // 限制日志条数
+        while (this.statusLog.children.length > 50) {
+            this.statusLog.removeChild(this.statusLog.firstChild);
+        }
+    }
+
+    updateInfo() {
+        const count = this.bst.nodeCount;
+        const height = this.bst.height();
+        this.nodeCountEl.textContent = count;
+        this.treeHeightEl.textContent = height;
+        this.isBSTEl.textContent = count === 0 ? '—' : (this.bst.isBST() ? '✅ 是' : '❌ 否');
+        this.isBSTEl.style.color = count > 0 && this.bst.isBST() ? '#27ae60' : '#e74c3c';
+
+        if (count === 0) {
+            this.emptyMessage.style.display = 'block';
+        } else {
+            this.emptyMessage.style.display = 'none';
+        }
+    }
+
+    // ===== 插入动画 =====
+    async handleInsert() {
+        if (this.animating) return;
+        const rawValue = this.valueInput.value.trim();
+        if (rawValue === '') {
+            this.log('⚠️ 请输入一个整数', 'warn');
+            return;
+        }
+        const value = parseInt(rawValue, 10);
+        if (isNaN(value)) {
+            this.log('⚠️ 请输入有效的整数', 'error');
+            return;
+        }
+
+        this.animating = true;
+        this.setButtonsEnabled(false);
+        this.visualizer.clearAllHighlights();
+        this.log(`🔍 开始插入 ${value}…`, 'info');
+
+        // 先渲染当前树
+        this.visualizer.render();
+        this.visualizer.centerTree();
+        await this.sleep(this.delay);
+
+        if (this.bst.root === null) {
+            // 空树 — 直接插入根
+            const result = this.bst.insert(value);
+            const root = this.bst.root;
+            root._highlight = 'new';
+            this.visualizer.render();
+            this.visualizer.centerTree();
+            this.log(`✅ ${value} 成为根节点`, 'success');
+            this.updateInfo();
+            await this.sleep(this.delay * 1.5);
+            root._highlight = null;
+        } else {
+            // 先模拟搜索路径
+            const searchPath = [];
+            let curr = this.bst.root;
+            while (curr) {
+                searchPath.push(curr);
+                if (value === curr.value) break;
+                curr = (value < curr.value) ? curr.left : curr.right;
+            }
+
+            // 检查重复
+            if (searchPath.length > 0 && searchPath[searchPath.length - 1].value === value) {
+                searchPath[searchPath.length - 1]._highlight = 'found';
+                this.visualizer.render();
+                this.visualizer.centerTree();
+                this.log(`⚠️ 值 ${value} 已存在，二叉排序树不允许重复值`, 'warn');
+                await this.sleep(this.delay * 1.5);
+                this.visualizer.clearAllHighlights();
+                this.visualizer.render();
+                this.animating = false;
+                this.setButtonsEnabled(true);
+                this.valueInput.select();
+                return;
+            }
+
+            // 逐步高亮搜索路径
+            for (let i = 0; i < searchPath.length; i++) {
+                searchPath[i]._highlight = 'search';
+                this.visualizer.render();
+                this.visualizer.centerTree();
+                const nodeVal = searchPath[i].value;
+                const dir = i < searchPath.length - 1
+                    ? (value < nodeVal ? '左' : '右')
+                    : '插入位置';
+                this.log(`📍 比较: ${value} ${value < nodeVal ? '<' : (value > nodeVal ? '>' : '=')} ${nodeVal}，${dir === '插入位置' ? '在此处插入' : '转向' + dir + '子树'}`, 'info');
+                await this.sleep(this.delay);
+
+                // 除了最后一个，恢复前一个的颜色
+                if (i > 0) {
+                    searchPath[i - 1]._highlight = null;
+                }
+            }
+            if (searchPath.length >= 1) {
+                searchPath[searchPath.length - 1]._highlight = 'search';
+            }
+
+            // 执行插入
+            const result = this.bst.insert(value);
+            if (!result.success) {
+                this.log(`⚠️ 插入失败`, 'error');
+                this.visualizer.clearAllHighlights();
+                this.visualizer.render();
+                this.animating = false;
+                this.setButtonsEnabled(true);
+                return;
+            }
+
+            // 清除搜索高亮
+            searchPath.forEach(n => { n._highlight = null; });
+
+            // 高亮新节点
+            const newNode = (result.side === 'left') ? result.parent.left : result.parent.right;
+            if (newNode) newNode._highlight = 'new';
+            this.visualizer.render();
+            this.visualizer.centerTree();
+            this.log(`✅ 成功插入 ${value}（作为 ${result.parent.value} 的${result.side === 'left' ? '左' : '右'}子节点）`, 'success');
+            this.updateInfo();
+            await this.sleep(this.delay * 1.5);
+
+            if (newNode) newNode._highlight = null;
+        }
+
+        // 最终渲染
+        this.visualizer.render();
+        this.visualizer.centerTree();
+        this.updateInfo();
+        this.bst.saveToStorage();
+        this.valueInput.value = '';
+        this.valueInput.select();
+        this.valueInput.focus();
+        this.animating = false;
+        this.setButtonsEnabled(true);
+    }
+
+    // ===== 删除动画 =====
+    async handleDelete() {
+        if (this.animating) return;
+        if (this.bst.root === null) {
+            this.log('⚠️ 树为空，无法删除', 'warn');
+            return;
+        }
+
+        const rawValue = this.valueInput.value.trim();
+        if (rawValue === '') {
+            this.log('⚠️ 请输入要删除的整数', 'warn');
+            return;
+        }
+        const value = parseInt(rawValue, 10);
+        if (isNaN(value)) {
+            this.log('⚠️ 请输入有效的整数', 'error');
+            return;
+        }
+
+        this.animating = true;
+        this.setButtonsEnabled(false);
+        this.visualizer.clearAllHighlights();
+        this.log(`🔍 开始查找要删除的节点 ${value}…`, 'info');
+
+        this.visualizer.render();
+        this.visualizer.centerTree();
+        await this.sleep(this.delay);
+
+        // 查找路径
+        const searchPath = [];
+        let curr = this.bst.root;
+        while (curr) {
+            searchPath.push(curr);
+            if (value === curr.value) break;
+            curr = (value < curr.value) ? curr.left : curr.right;
+        }
+
+        // 逐步高亮搜索路径
+        for (let i = 0; i < searchPath.length; i++) {
+            searchPath[i]._highlight = 'search';
+            this.visualizer.render();
+            this.visualizer.centerTree();
+            const nodeVal = searchPath[i].value;
+            if (i < searchPath.length - 1 || searchPath[i].value !== value) {
+                const dir = value < nodeVal ? '左' : '右';
+                this.log(`📍 比较: ${value} ${value < nodeVal ? '<' : '>'} ${nodeVal}，转向${dir}子树`, 'info');
+            }
+            await this.sleep(this.delay);
+            if (i > 0 && searchPath[i - 1].value !== value) {
+                searchPath[i - 1]._highlight = null;
+            }
+        }
+
+        // 检查是否找到
+        const lastNode = searchPath[searchPath.length - 1];
+        if (!lastNode || lastNode.value !== value) {
+            this.log(`⚠️ 未找到值为 ${value} 的节点`, 'warn');
+            if (lastNode) lastNode._highlight = null;
+            searchPath.forEach(n => { n._highlight = null; });
+            this.visualizer.render();
+            this.animating = false;
+            this.setButtonsEnabled(true);
+            return;
+        }
+
+        // 找到目标节点
+        // 清除搜索路径上的高亮（保留目标节点）
+        searchPath.forEach(n => { if (n !== lastNode) n._highlight = null; });
+        lastNode._highlight = 'found';
+        this.visualizer.render();
+        this.visualizer.centerTree();
+
+        // 判断情况
+        if (lastNode.left === null && lastNode.right === null) {
+            this.log(`🎯 找到节点 ${value}（叶子节点），准备删除`, 'info');
+        } else if (lastNode.left === null || lastNode.right === null) {
+            const childSide = lastNode.left ? '左' : '右';
+            this.log(`🎯 找到节点 ${value}（仅有一个${childSide}子节点），准备删除`, 'info');
+        } else {
+            this.log(`🎯 找到节点 ${value}（有两个子节点），需要查找中序后继`, 'info');
+        }
+
+        await this.sleep(this.delay);
+
+        // Case 3: 两个子节点 — 找到后继
+        let successorPathNodes = [];
+        if (lastNode.left !== null && lastNode.right !== null) {
+            this.log(`🔎 在右子树中查找最小节点（中序后继）…`, 'info');
+
+            let succParent = lastNode;
+            let succ = lastNode.right;
+            successorPathNodes.push(succ);
+
+            while (succ.left !== null) {
+                succParent = succ;
+                succ = succ.left;
+                successorPathNodes.push(succ);
+            }
+
+            // 高亮后继路径
+            for (let i = 0; i < successorPathNodes.length; i++) {
+                successorPathNodes[i]._highlight = 'search';
+                this.visualizer.render();
+                this.visualizer.centerTree();
+                this.log(`📍 检查节点 ${successorPathNodes[i].value}…`, 'info');
+                await this.sleep(this.delay);
+                if (i > 0) successorPathNodes[i - 1]._highlight = null;
+            }
+
+            // 标记后继
+            const succNode = successorPathNodes[successorPathNodes.length - 1];
+            succNode._highlight = 'successor';
+            if (successorPathNodes.length > 1) {
+                successorPathNodes[successorPathNodes.length - 2]._highlight = null;
+            }
+            this.visualizer.render();
+            this.visualizer.centerTree();
+            this.log(`💡 中序后继为 ${succNode.value}，将替换 ${value}`, 'info');
+            await this.sleep(this.delay * 1.5);
+        }
+
+        // 执行删除
+        const result = this.bst.delete(value);
+        if (!result.success) {
+            this.log(`⚠️ 删除失败`, 'error');
+            this.visualizer.clearAllHighlights();
+            this.visualizer.render();
+            this.animating = false;
+            this.setButtonsEnabled(true);
+            return;
+        }
+
+        // 清除所有高亮
+        this.visualizer.clearAllHighlights();
+
+        // 重新渲染
+        this.visualizer.render();
+        this.visualizer.centerTree();
+
+        if (result.caseType === 'leaf') {
+            this.log(`✅ 成功删除叶子节点 ${value}`, 'success');
+        } else if (result.caseType === 'one_child') {
+            this.log(`✅ 成功删除节点 ${value}，子节点上移`, 'success');
+        } else {
+            this.log(`✅ 中序后继 ${result.successor ? result.successor.value : '?'} 的值已复制到目标节点，后继节点已删除`, 'success');
+        }
+
+        this.updateInfo();
+        this.bst.saveToStorage();
+        await this.sleep(this.delay);
+
+        this.valueInput.value = '';
+        this.valueInput.select();
+        this.valueInput.focus();
+        this.animating = false;
+        this.setButtonsEnabled(true);
+    }
+
+    // ===== 遍历 =====
+    async handleTraverse(order) {
+        if (this.animating) return;
+        if (this.bst.root === null) {
+            this.log('⚠️ 树为空，无法遍历', 'warn');
+            return;
+        }
+
+        this.animating = true;
+        this.setButtonsEnabled(false);
+        this.visualizer.clearAllHighlights();
+
+        // 高亮当前按下的遍历按钮
+        const btnMap = {
+            preorder: this.btnPreorder,
+            inorder: this.btnInorder,
+            postorder: this.btnPostorder,
+        };
+        const nameMap = {
+            preorder: '先序遍历',
+            inorder: '中序遍历',
+            postorder: '后序遍历',
+        };
+        Object.values(btnMap).forEach(b => b.classList.remove('active'));
+        btnMap[order].classList.add('active');
+
+        // 获取遍历序列
+        let sequence;
+        if (order === 'preorder') {
+            sequence = this.bst.preorder();
+        } else if (order === 'inorder') {
+            sequence = this.bst.inorder();
+        } else {
+            sequence = this.bst.postorder();
+        }
+
+        const values = sequence.map(n => n.value);
+        this.log(`🔍 开始${nameMap[order]}：${values.join(' → ')}`, 'info');
+
+        // 在结果区清空并准备显示
+        this.traverseResult.innerHTML = '<div class="traverse-sequence" id="traverseSeq"></div>';
+        const seqContainer = document.getElementById('traverseSeq');
+
+        // 逐个高亮节点并添加到结果序列
+        for (let i = 0; i < sequence.length; i++) {
+            // 清除前一个高亮
+            if (i > 0) {
+                sequence[i - 1]._highlight = null;
+            }
+            sequence[i]._highlight = 'traverse';
+
+            this.visualizer.render();
+            this.visualizer.centerTree();
+
+            // 在结果区追加当前值
+            const token = document.createElement('span');
+            token.className = 'traverse-token';
+            token.textContent = sequence[i].value;
+            seqContainer.appendChild(token);
+
+            await this.sleep(this.delay);
+        }
+
+        // 短暂停留后清除所有高亮
+        await this.sleep(this.delay);
+        this.visualizer.clearAllHighlights();
+        this.visualizer.render();
+        this.visualizer.centerTree();
+
+        // 显示完整序列
+        this.traverseResult.innerHTML = `
+            <div style="font-weight:700;color:#006064;margin-bottom:4px;">${nameMap[order]}结果：</div>
+            <div class="traverse-sequence">
+                ${values.map(v => `<span class="traverse-token">${v}</span>`).join('')}
+            </div>
+        `;
+
+        this.log(`✅ ${nameMap[order]}完成：${values.join(' → ')}`, 'success');
+        this.animating = false;
+        this.setButtonsEnabled(true);
+    }
+
+    // ===== 重置 =====
+    async handleReset() {
+        if (this.animating) return;
+        this.animating = true;
+        this.setButtonsEnabled(false);
+
+        // 清空 SVG
+        while (this.svg.firstChild) {
+            this.svg.removeChild(this.svg.firstChild);
+        }
+        this.visualizer.nodeElements.clear();
+        this.visualizer.edgeElements.clear();
+        this.visualizer.nodeIdCounter = 0;
+
+        this.bst = new BST();
+        this.visualizer.bst = this.bst;
+        localStorage.removeItem('bst_tree_data');
+
+        // 清空日志
+        this.statusLog.innerHTML = '';
+
+        // 清空遍历结果
+        this.traverseResult.innerHTML = '<span class="traverse-placeholder">点击上方按钮查看遍历结果</span>';
+        [this.btnPreorder, this.btnInorder, this.btnPostorder].forEach(b => b.classList.remove('active'));
+
+        this.updateInfo();
+        this.log('🔄 树已重置', 'info');
+        this.valueInput.value = '';
+        this.valueInput.focus();
+        this.animating = false;
+        this.setButtonsEnabled(true);
+    }
+
+    // ===== 随机插入 =====
+    async handleRandomInsert() {
+        if (this.animating) return;
+        const value = Math.floor(Math.random() * 100) + 1;
+        this.valueInput.value = value;
+        await this.handleInsert();
+    }
+}
+
+// ===========================
+// 启动
+// ===========================
+document.addEventListener('DOMContentLoaded', () => {
+    const app = new AppController();
+    // 暴露到全局方便调试
+    window.bstApp = app;
+});
+</script>
+
+</body>
+</html>
