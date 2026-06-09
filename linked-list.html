@@ -1,0 +1,1695 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>链表的基本操作 — 可视化</title>
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --card-bg: #ffffff;
+            --primary: #4a90d9;
+            --danger: #e74c3c;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --purple: #8e44ad;
+            --teal: #00bcd4;
+            --orange: #e67e22;
+            --text: #2c3e50;
+            --text-light: #636e72;
+            --border: #e0e4e8;
+            --shadow: 0 2px 12px rgba(0,0,0,0.08);
+            --radius: 10px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* ===== Header ===== */
+        .header {
+            width: 100%;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: #fff;
+            padding: 16px 24px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+        .header h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: 1px; }
+        .header .back-btn {
+            position: absolute;
+            left: 24px;
+            color: #fff;
+            text-decoration: none;
+            font-size: 0.9rem;
+            padding: 6px 14px;
+            border: 1px solid rgba(255,255,255,0.4);
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .header .back-btn:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.7); }
+
+        /* ===== Main Layout ===== */
+        .main-container {
+            display: flex;
+            flex: 1;
+            width: 100%;
+            max-width: 1400px;
+            gap: 16px;
+            padding: 16px;
+            height: calc(100vh - 80px);
+        }
+
+        /* ===== Sidebar ===== */
+        .sidebar {
+            width: 320px;
+            min-width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 16px;
+            border: 1px solid var(--border);
+        }
+        .card-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 6px;
+            display: inline-block;
+        }
+
+        /* ===== Type Tabs ===== */
+        .type-tabs {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        .type-tab {
+            flex: 1;
+            min-width: 0;
+            padding: 10px 8px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-light);
+            text-align: center;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .type-tab:hover { border-color: var(--primary); color: var(--primary); }
+        .type-tab.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+
+        /* ===== Head Node Toggle ===== */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+        }
+        .toggle-row span { font-size: 0.85rem; font-weight: 600; color: var(--text); }
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 26px;
+        }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider {
+            position: absolute;
+            inset: 0;
+            background: #ccc;
+            border-radius: 26px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            left: 3px;
+            bottom: 3px;
+            background: #fff;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        .toggle-switch input:checked + .toggle-slider { background: var(--primary); }
+        .toggle-switch input:checked + .toggle-slider::before { transform: translateX(22px); }
+        .toggle-hint {
+            font-size: 0.72rem;
+            color: var(--text-light);
+            margin-top: -6px;
+            font-style: italic;
+        }
+
+        /* ===== Input & Buttons ===== */
+        .input-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .input-row input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border 0.2s;
+            min-width: 0;
+        }
+        .input-row input:focus { border-color: var(--primary); }
+        .input-row label {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-light);
+            white-space: nowrap;
+        }
+
+        .btn {
+            padding: 10px 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        .btn:active { transform: scale(0.96); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
+        .btn-insert { background: var(--success); color: #fff; }
+        .btn-insert:hover:not(:disabled) { background: #219a52; }
+        .btn-delete { background: var(--danger); color: #fff; }
+        .btn-delete:hover:not(:disabled) { background: #c0392b; }
+        .btn-update { background: var(--warning); color: #fff; }
+        .btn-update:hover:not(:disabled) { background: #d68910; }
+        .btn-search { background: var(--teal); color: #fff; }
+        .btn-search:hover:not(:disabled) { background: #0097a7; }
+        .btn-reset { background: #636e72; color: #fff; }
+        .btn-reset:hover:not(:disabled) { background: #4a5559; }
+        .btn-random { background: var(--purple); color: #fff; }
+        .btn-random:hover:not(:disabled) { background: #732d91; }
+
+        .btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
+        .btn-row .btn { flex: 1; min-width: 70px; }
+
+        /* ===== Info Row ===== */
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.82rem;
+            color: var(--text-light);
+            padding: 3px 0;
+        }
+        .info-row span:last-child { font-weight: 700; color: var(--text); }
+        .highlight-num { color: var(--primary); font-weight: 700; }
+
+        /* ===== Right Panel ===== */
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        /* ===== Visual Area ===== */
+        .visual-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 300px;
+        }
+        .visual-card .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            flex-shrink: 0;
+        }
+        .visual-card .card-header .card-title {
+            margin-bottom: 0;
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        .list-container {
+            flex: 1;
+            overflow-x: auto;
+            overflow-y: hidden;
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            min-height: 120px;
+        }
+        .list-display {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            white-space: nowrap;
+            padding: 8px 20px;
+        }
+
+        .empty-message {
+            width: 100%;
+            text-align: center;
+            color: #b0b8c1;
+            font-size: 1.1rem;
+        }
+        .empty-message .icon { font-size: 2.5rem; display: block; margin-bottom: 8px; }
+
+        /* Node Styles */
+        .node-wrapper {
+            display: flex;
+            align-items: center;
+            animation: nodeAppear 0.4s ease-out;
+        }
+        @keyframes nodeAppear {
+            from { opacity: 0; transform: scale(0.7); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .node-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 3px solid var(--primary);
+            border-radius: 12px;
+            min-width: 70px;
+            background: linear-gradient(135deg, #eaf2fb, #f0f6fc);
+            box-shadow: 0 2px 8px rgba(74,144,217,0.15);
+            transition: all 0.3s;
+            overflow: hidden;
+        }
+        .node-box.head-node {
+            border-color: var(--warning);
+            background: linear-gradient(135deg, #fef9e7, #fdf2d0);
+            border-style: dashed;
+        }
+        .node-box.highlight {
+            border-color: var(--danger);
+            box-shadow: 0 0 16px rgba(231,76,60,0.4);
+            animation: pulse 0.6s ease-in-out 3;
+        }
+        .node-box.found {
+            border-color: var(--success);
+            box-shadow: 0 0 16px rgba(39,174,96,0.4);
+            animation: pulse 0.6s ease-in-out 3;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.06); }
+        }
+
+        .node-value {
+            padding: 12px 16px;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text);
+            min-width: 50px;
+            text-align: center;
+        }
+        .head-node .node-value { color: var(--orange); font-style: italic; }
+
+        .node-meta {
+            font-size: 0.65rem;
+            color: var(--text-light);
+            background: rgba(0,0,0,0.04);
+            width: 100%;
+            text-align: center;
+            padding: 2px 0;
+        }
+        .node-meta span { margin: 0 4px; }
+
+        .arrow {
+            display: flex;
+            align-items: center;
+            font-size: 1.5rem;
+            color: #b0b8c1;
+            margin: 0 6px;
+            font-weight: 300;
+            transition: color 0.3s;
+        }
+        .arrow.double {
+            position: relative;
+        }
+        .arrow .arrow-up {
+            position: absolute;
+            top: -8px;
+            font-size: 0.85rem;
+        }
+
+        .null-symbol {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            color: #aaa;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 6px;
+        }
+
+        /* ===== Log Area ===== */
+        .log-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            max-height: 260px;
+            overflow: hidden;
+        }
+        .log-card .card-header {
+            padding: 12px 16px 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .log-card .card-title { margin-bottom: 0; border-bottom: none; padding-bottom: 0; }
+        .log-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 16px 12px;
+            font-family: 'Consolas', 'Source Code Pro', 'Courier New', monospace;
+            font-size: 0.78rem;
+        }
+        .log-entry {
+            border-bottom: 1px solid #f0f0f0;
+            padding: 10px 0;
+            animation: logSlide 0.3s ease-out;
+        }
+        @keyframes logSlide {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .log-entry:last-child { border-bottom: none; }
+        .log-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+        .log-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 4px;
+            color: #fff;
+            white-space: nowrap;
+        }
+        .badge-insert { background: var(--success); }
+        .badge-delete { background: var(--danger); }
+        .badge-update { background: var(--warning); }
+        .badge-search { background: var(--teal); }
+        .badge-reset { background: #636e72; }
+        .badge-random { background: var(--purple); }
+        .badge-switch { background: var(--primary); }
+        .log-time { font-size: 0.7rem; color: #aaa; }
+        .log-code {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 8px 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            white-space: pre;
+            font-size: 0.73rem;
+            line-height: 1.5;
+        }
+        .log-result {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            margin-top: 4px;
+        }
+        .log-result.success { color: var(--success); }
+        .log-result.fail { color: var(--danger); }
+
+        .log-empty {
+            text-align: center;
+            color: #b0b8c1;
+            padding: 24px;
+            font-size: 0.9rem;
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 900px) {
+            .main-container {
+                flex-direction: column;
+                height: auto;
+            }
+            .sidebar { width: 100%; min-width: 0; }
+            .right-panel { min-height: 400px; }
+            .log-card { max-height: 200px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ===== Header ===== -->
+<div class="header">
+    <a class="back-btn" href="index.html" title="返回目录">← 目录</a>
+    <h1>🔗 链表的基本操作</h1>
+</div>
+
+<!-- ===== Main ===== -->
+<div class="main-container">
+
+    <!-- ===== Sidebar ===== -->
+    <div class="sidebar">
+
+        <!-- List Type -->
+        <div class="card">
+            <div class="card-title">📋 链表类型</div>
+            <div class="type-tabs" id="typeTabs">
+                <button class="type-tab active" data-type="singly">单链表</button>
+                <button class="type-tab" data-type="doubly">双链表</button>
+                <button class="type-tab" data-type="circular">循环链表</button>
+            </div>
+        </div>
+
+        <!-- Head Node Toggle (only for singly) -->
+        <div class="card" id="headNodeCard">
+            <div class="card-title">⚙️ 选项</div>
+            <div class="toggle-row">
+                <span>带头节点</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="headNodeToggle">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="toggle-hint" id="headNodeHint">
+                头节点不存储数据，便于统一插入/删除逻辑
+            </div>
+        </div>
+
+        <!-- Operations -->
+        <div class="card">
+            <div class="card-title">🔧 操作面板</div>
+            <div class="input-row" style="margin-bottom:8px;">
+                <label for="inputValue">值:</label>
+                <input type="number" id="inputValue" placeholder="输入数值" value="42">
+            </div>
+            <div class="input-row" style="margin-bottom:12px;">
+                <label for="inputPos">位置:</label>
+                <input type="number" id="inputPos" placeholder="从0开始" value="0" min="0">
+            </div>
+            <div class="btn-row" style="margin-bottom:6px;">
+                <button class="btn btn-insert" id="btnInsertHead" title="在头部插入">头部插入</button>
+                <button class="btn btn-insert" id="btnInsertTail" title="在尾部插入">尾部插入</button>
+            </div>
+            <div class="btn-row" style="margin-bottom:6px;">
+                <button class="btn btn-insert" id="btnInsertAt" title="在指定位置插入">位置插入</button>
+                <button class="btn btn-delete" id="btnDeleteAt" title="删除指定位置节点">位置删除</button>
+            </div>
+            <div class="btn-row" style="margin-bottom:6px;">
+                <button class="btn btn-delete" id="btnDeleteVal" title="删除指定值的节点">按值删除</button>
+                <button class="btn btn-update" id="btnUpdate" title="修改指定位置节点的值">按位修改</button>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-search" id="btnSearch" title="搜索指定值">🔍 搜索值</button>
+                <button class="btn btn-random" id="btnRandom" title="随机生成5个节点">🎲 随机生成</button>
+            </div>
+            <button class="btn btn-reset" id="btnReset" style="width:100%;margin-top:8px;">
+                🗑️ 清空链表
+            </button>
+        </div>
+
+        <!-- Info -->
+        <div class="card">
+            <div class="card-title">📊 链表信息</div>
+            <div class="info-row"><span>链表类型</span><span id="infoType">单链表</span></div>
+            <div class="info-row"><span>头节点</span><span id="infoHead">无</span></div>
+            <div class="info-row"><span>节点数量</span><span id="infoSize">0</span></div>
+        </div>
+    </div>
+
+    <!-- ===== Right Panel ===== -->
+    <div class="right-panel">
+
+        <!-- Visual Display -->
+        <div class="visual-card">
+            <div class="card-header">
+                <span class="card-title">🎨 链表可视化</span>
+            </div>
+            <div class="list-container" id="listContainer">
+                <div class="list-display" id="listDisplay">
+                    <div class="empty-message">
+                        <span class="icon">📭</span>
+                        链表为空，请插入节点
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Operation Log -->
+        <div class="log-card">
+            <div class="card-header">
+                <span class="card-title">📝 操作日志（含关键代码）</span>
+                <button class="btn" style="font-size:0.7rem;padding:4px 10px;background:#eee;color:#666;" id="btnClearLog">清空日志</button>
+            </div>
+            <div class="log-list" id="logList">
+                <div class="log-empty">等待操作…</div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+// ============================
+//  DATA MODEL
+// ============================
+class ListNode {
+    constructor(value) {
+        this.value = value;
+        this.next = null;
+        this.prev = null;
+    }
+}
+
+class LinkedList {
+    constructor(type = 'singly', hasHeadNode = false) {
+        this.type = type;
+        this.hasHeadNode = hasHeadNode;
+        this.head = null;
+        if (hasHeadNode) {
+            this.head = new ListNode('HEAD');
+        }
+    }
+
+    /** Get the first node that stores actual data (skip head node if present) */
+    getFirstRealNode() {
+        if (!this.head) return null;
+        if (this.hasHeadNode) return this.head.next;
+        return this.head;
+    }
+
+    /** Get the number of data nodes (not counting head node) */
+    getSize() {
+        let count = 0;
+        let curr = this.getFirstRealNode();
+        if (!curr) return 0;
+
+        if (this.type === 'circular') {
+            const first = curr;
+            do {
+                count++;
+                curr = curr.next;
+            } while (curr && curr !== first);
+        } else {
+            while (curr) {
+                count++;
+                curr = curr.next;
+            }
+        }
+        return count;
+    }
+
+    /** Get node at data-position (0 = first data node) */
+    getNodeAt(pos) {
+        let curr = this.getFirstRealNode();
+        if (!curr) return null;
+        let idx = 0;
+
+        if (this.type === 'circular') {
+            const first = curr;
+            while (idx < pos) {
+                curr = curr.next;
+                if (!curr || curr === first) return null;
+                idx++;
+            }
+        } else {
+            while (curr && idx < pos) {
+                curr = curr.next;
+                idx++;
+            }
+        }
+        return curr;
+    }
+
+    /** Get node and its predecessor at data-position */
+    getNodeWithPrevAt(pos) {
+        let prev = this.head; // for head-node list, this is the head node
+        let curr = this.getFirstRealNode();
+        if (!curr) return { prev: null, curr: null };
+
+        if (this.hasHeadNode) {
+            prev = this.head;
+        } else {
+            prev = null;
+        }
+
+        let idx = 0;
+        if (this.type === 'circular') {
+            const first = curr;
+            const last = this.getLastNode();
+            while (idx < pos) {
+                prev = curr;
+                curr = curr.next;
+                if (!curr || curr === first) return { prev: null, curr: null };
+                idx++;
+            }
+        } else {
+            while (curr && idx < pos) {
+                prev = curr;
+                curr = curr.next;
+                idx++;
+            }
+        }
+        return { prev, curr };
+    }
+
+    /** Get the last data node */
+    getLastNode() {
+        if (!this.head) return null;
+        let curr = this.head;
+        if (this.type === 'circular') {
+            const first = this.hasHeadNode ? this.head : this.head;
+            // Walk to the node whose next is the first data node
+            const firstData = this.getFirstRealNode();
+            if (!firstData) return null;
+            curr = firstData;
+            while (curr.next && curr.next !== firstData) {
+                curr = curr.next;
+            }
+            return curr;
+        } else {
+            if (this.hasHeadNode) curr = this.head;
+            else {
+                if (!this.head) return null;
+                curr = this.head;
+            }
+            while (curr.next) {
+                curr = curr.next;
+            }
+            return (curr === this.head && this.hasHeadNode) ? null : curr;
+        }
+    }
+
+    /** Insert at data-position */
+    insertAt(pos, value) {
+        const size = this.getSize();
+        if (pos < 0 || pos > size) return false;
+
+        const newNode = new ListNode(value);
+        const realHead = this.getFirstRealNode();
+
+        // Empty list case
+        if (!realHead && pos === 0) {
+            if (this.hasHeadNode) {
+                this.head.next = newNode;
+            } else {
+                this.head = newNode;
+            }
+            if (this.type === 'circular') {
+                newNode.next = newNode;
+            }
+            if (this.type === 'doubly' && this.hasHeadNode) {
+                newNode.prev = this.head;
+                this.head.next = newNode;
+            }
+            return true;
+        }
+
+        // Insert at position 0
+        if (pos === 0) {
+            if (this.hasHeadNode) {
+                newNode.next = this.head.next;
+                if (this.type === 'doubly') {
+                    if (this.head.next) this.head.next.prev = newNode;
+                    newNode.prev = this.head;
+                }
+                this.head.next = newNode;
+                if (this.type === 'circular') {
+                    const last = this.getLastNode();
+                    if (last) last.next = newNode;
+                }
+            } else {
+                newNode.next = this.head;
+                if (this.type === 'doubly' && this.head) {
+                    this.head.prev = newNode;
+                }
+                this.head = newNode;
+                if (this.type === 'circular') {
+                    const last = this.getLastNode();
+                    if (last) last.next = newNode;
+                }
+            }
+            return true;
+        }
+
+        // Insert at middle/end
+        const { prev } = this.getNodeWithPrevAt(pos);
+        if (!prev && !this.hasHeadNode && pos > 0) return false;
+
+        newNode.next = prev.next;
+        if (this.type === 'doubly') {
+            newNode.prev = prev;
+            if (prev.next) prev.next.prev = newNode;
+        }
+        prev.next = newNode;
+
+        if (this.type === 'circular' && pos === size) {
+            newNode.next = this.getFirstRealNode();
+        }
+        return true;
+    }
+
+    /** Insert at head (pos 0) */
+    insertHead(value) {
+        return this.insertAt(0, value);
+    }
+
+    /** Insert at tail */
+    insertTail(value) {
+        return this.insertAt(this.getSize(), value);
+    }
+
+    /** Delete at data-position */
+    deleteAt(pos) {
+        const size = this.getSize();
+        if (pos < 0 || pos >= size || size === 0) return false;
+
+        // Delete position 0
+        if (pos === 0) {
+            const toDelete = this.getFirstRealNode();
+            if (!toDelete) return false;
+
+            if (this.hasHeadNode) {
+                this.head.next = toDelete.next;
+                if (this.type === 'doubly' && toDelete.next) {
+                    toDelete.next.prev = this.head;
+                }
+                if (this.type === 'circular' && size === 1) {
+                    this.head.next = null;
+                } else if (this.type === 'circular') {
+                    const last = this.getLastNode();
+                    if (last) last.next = toDelete.next;
+                }
+            } else {
+                this.head = toDelete.next;
+                if (this.type === 'doubly' && this.head) {
+                    this.head.prev = null;
+                }
+                if (this.type === 'circular' && size === 1) {
+                    this.head = null;
+                } else if (this.type === 'circular') {
+                    const last = this.getLastNode();
+                    if (last) last.next = this.head;
+                }
+            }
+            return true;
+        }
+
+        // Delete at middle/end
+        const { prev, curr } = this.getNodeWithPrevAt(pos);
+        if (!prev || !curr) return false;
+
+        prev.next = curr.next;
+        if (this.type === 'doubly' && curr.next) {
+            curr.next.prev = prev;
+        }
+        if (this.type === 'circular') {
+            const firstData = this.getFirstRealNode();
+            if (curr.next === firstData) {
+                prev.next = firstData;
+            }
+        }
+        return true;
+    }
+
+    /** Delete by value (first occurrence) */
+    deleteByValue(value) {
+        const size = this.getSize();
+        if (size === 0) return -1;
+
+        let curr = this.getFirstRealNode();
+        let prev = this.hasHeadNode ? this.head : null;
+        let idx = 0;
+
+        if (this.type === 'circular') {
+            const first = curr;
+            do {
+                if (curr.value === value) {
+                    // Found
+                    if (idx === 0) {
+                        return this.deleteAt(0) ? 0 : -1;
+                    }
+                    prev.next = curr.next;
+                    if (this.type === 'doubly' && curr.next) {
+                        curr.next.prev = prev;
+                    }
+                    const firstData = this.getFirstRealNode();
+                    return idx;
+                }
+                prev = curr;
+                curr = curr.next;
+                idx++;
+            } while (curr && curr !== first);
+        } else {
+            while (curr) {
+                if (curr.value === value) {
+                    if (idx === 0) {
+                        return this.deleteAt(0) ? 0 : -1;
+                    }
+                    prev.next = curr.next;
+                    if (this.type === 'doubly' && curr.next) {
+                        curr.next.prev = prev;
+                    }
+                    return idx;
+                }
+                prev = curr;
+                curr = curr.next;
+                idx++;
+            }
+        }
+        return -1; // not found
+    }
+
+    /** Update value at data-position */
+    updateAt(pos, newValue) {
+        const node = this.getNodeAt(pos);
+        if (!node) return false;
+        node.value = newValue;
+        return true;
+    }
+
+    /** Search for a value, return all positions */
+    search(value) {
+        const positions = [];
+        let curr = this.getFirstRealNode();
+        if (!curr) return positions;
+
+        let idx = 0;
+        if (this.type === 'circular') {
+            const first = curr;
+            do {
+                if (curr.value === value) positions.push(idx);
+                curr = curr.next;
+                idx++;
+            } while (curr && curr !== first);
+        } else {
+            while (curr) {
+                if (curr.value === value) positions.push(idx);
+                curr = curr.next;
+                idx++;
+            }
+        }
+        return positions;
+    }
+
+    /** Get all data values in order */
+    toArray() {
+        const arr = [];
+        let curr = this.getFirstRealNode();
+        if (!curr) return arr;
+
+        if (this.type === 'circular') {
+            const first = curr;
+            do {
+                arr.push(curr.value);
+                curr = curr.next;
+            } while (curr && curr !== first);
+        } else {
+            while (curr) {
+                arr.push(curr.value);
+                curr = curr.next;
+            }
+        }
+        return arr;
+    }
+
+    /** Reset */
+    clear() {
+        this.head = this.hasHeadNode ? new ListNode('HEAD') : null;
+    }
+}
+
+// ============================
+//  APPLICATION STATE
+// ============================
+const STORAGE_KEY = 'linked_list_state';
+const LOG_STORAGE_KEY = 'linked_list_log';
+
+let list;
+let logEntries = [];
+
+function getDefaultState() {
+    return {
+        type: 'singly',
+        hasHeadNode: false,
+        values: [10, 25, 38, 56, 72]
+    };
+}
+
+function saveState() {
+    const state = {
+        type: list.type,
+        hasHeadNode: list.hasHeadNode,
+        values: list.toArray()
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function loadState() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return getDefaultState();
+    try {
+        const state = JSON.parse(raw);
+        if (!state.type || !Array.isArray(state.values)) return getDefaultState();
+        return state;
+    } catch {
+        return getDefaultState();
+    }
+}
+
+function saveLog() {
+    // Keep max 50 log entries in localStorage
+    const toSave = logEntries.slice(-50);
+    localStorage.setItem(LOG_STORAGE_KEY, JSON.stringify(toSave));
+}
+
+function loadLog() {
+    const raw = localStorage.getItem(LOG_STORAGE_KEY);
+    if (!raw) return [];
+    try {
+        return JSON.parse(raw);
+    } catch {
+        return [];
+    }
+}
+
+function buildListFromState(state) {
+    const l = new LinkedList(state.type, state.hasHeadNode);
+    for (const v of state.values) {
+        l.insertTail(v);
+    }
+    return l;
+}
+
+// ============================
+//  CODE SNIPPET GENERATION
+// ============================
+function generateInsertCode(type, hasHeadNode, pos, value, size) {
+    let code = '';
+    const isSingly = type === 'singly';
+    const isDoubly = type === 'doubly';
+    const isCircular = type === 'circular';
+
+    if (pos === 0) {
+        // Head insertion
+        code += `// 在头部插入节点，值为 ${value}\n`;
+        code += `let newNode = new ListNode(${value});\n`;
+        if (hasHeadNode) {
+            code += `newNode.next = head.next;\n`;
+            if (isDoubly) {
+                code += `newNode.prev = head;\n`;
+                code += `if (head.next) head.next.prev = newNode;\n`;
+            }
+            code += `head.next = newNode;\n`;
+            if (isCircular && size > 0) {
+                code += `// 更新尾节点指向新头节点\n`;
+                code += `let last = getLastNode();\n`;
+                code += `last.next = newNode;\n`;
+            }
+        } else {
+            code += `newNode.next = head;\n`;
+            if (isDoubly && size > 0) {
+                code += `if (head) head.prev = newNode;\n`;
+            }
+            code += `head = newNode;\n`;
+            if (isCircular && size > 0) {
+                code += `let last = getLastNode();\n`;
+                code += `last.next = head;\n`;
+            }
+            if (isCircular && size === 0) {
+                code += `newNode.next = newNode; // 循环指向自身\n`;
+            }
+        }
+    } else if (pos === size) {
+        // Tail insertion
+        code += `// 在尾部插入节点，值为 ${value}\n`;
+        code += `let newNode = new ListNode(${value});\n`;
+        code += `let curr = head;\n`;
+        if (hasHeadNode) {
+            code += `// 遍历到最后一个数据节点\n`;
+        }
+        if (isCircular) {
+            code += `let first = head${hasHeadNode ? '.next' : ''};\n`;
+            code += `while (curr.next && curr.next !== first) curr = curr.next;\n`;
+        } else {
+            code += `while (curr.next) curr = curr.next;\n`;
+        }
+        code += `curr.next = newNode;\n`;
+        if (isDoubly) code += `newNode.prev = curr;\n`;
+        if (isCircular) code += `newNode.next = first; // 新尾节点指向头节点\n`;
+    } else {
+        // Middle insertion
+        code += `// 在位置 ${pos} 插入节点，值为 ${value}\n`;
+        code += `let newNode = new ListNode(${value});\n`;
+        if (hasHeadNode) {
+            code += `let curr = head;\n`;
+            code += `for (let i = 0; i < ${pos}; i++) curr = curr.next;\n`;
+        } else {
+            code += `let curr = head;\n`;
+            code += `for (let i = 0; i < ${pos - 1}; i++) curr = curr.next;\n`;
+        }
+        code += `newNode.next = curr.next;\n`;
+        if (isDoubly) {
+            code += `newNode.prev = curr;\n`;
+            code += `if (curr.next) curr.next.prev = newNode;\n`;
+        }
+        code += `curr.next = newNode;\n`;
+    }
+    return code;
+}
+
+function generateDeleteCode(type, hasHeadNode, pos, value, size) {
+    let code = '';
+    const isDoubly = type === 'doubly';
+    const isCircular = type === 'circular';
+
+    if (pos === 0) {
+        code += `// 删除头部节点（值: ${value}）\n`;
+        if (hasHeadNode) {
+            code += `let delNode = head.next;\n`;
+            code += `head.next = delNode.next;\n`;
+            if (isDoubly && size > 1) {
+                code += `if (delNode.next) delNode.next.prev = head;\n`;
+            }
+            if (isCircular && size > 1) {
+                code += `let last = getLastNode();\n`;
+                code += `last.next = head.next;\n`;
+            }
+        } else {
+            code += `let delNode = head;\n`;
+            code += `head = head.next;\n`;
+            if (isDoubly && size > 1) {
+                code += `if (head) head.prev = null;\n`;
+            }
+            if (isCircular && size > 1) {
+                code += `let last = getLastNode();\n`;
+                code += `last.next = head;\n`;
+            }
+        }
+    } else if (pos === size - 1) {
+        code += `// 删除尾部节点（值: ${value}）\n`;
+        code += `let curr = head;\n`;
+        if (isCircular) {
+            code += `let first = head${hasHeadNode ? '.next' : ''};\n`;
+            code += `while (curr.next && curr.next.next !== first) curr = curr.next;\n`;
+        } else {
+            code += `while (curr.next && curr.next.next) curr = curr.next;\n`;
+        }
+        code += `curr.next = ${isCircular ? 'curr.next.next /* 即 first */' : 'null'};\n`;
+        if (isDoubly) {
+            if (isCircular) code += `first.prev = curr;\n`;
+        }
+    } else {
+        code += `// 删除位置 ${pos} 的节点（值: ${value}）\n`;
+        if (hasHeadNode) {
+            code += `let curr = head;\n`;
+            code += `for (let i = 0; i < ${pos}; i++) curr = curr.next;\n`;
+        } else {
+            code += `let curr = head;\n`;
+            code += `for (let i = 0; i < ${pos - 1}; i++) curr = curr.next;\n`;
+        }
+        code += `let delNode = curr.next;\n`;
+        code += `curr.next = delNode.next;\n`;
+        if (isDoubly) {
+            code += `if (delNode.next) delNode.next.prev = curr;\n`;
+        }
+    }
+    return code;
+}
+
+function generateUpdateCode(type, hasHeadNode, pos, oldValue, newValue) {
+    let code = '';
+    code += `// 修改位置 ${pos} 节点的值\n`;
+    code += `let curr = head;\n`;
+    const startFrom = hasHeadNode ? 0 : 0;
+    if (hasHeadNode) {
+        code += `curr = curr.next; // 跳过头节点\n`;
+    }
+    code += `for (let i = 0; i < ${pos}; i++) curr = curr.next;\n`;
+    code += `// 原值: ${oldValue}\n`;
+    code += `curr.value = ${newValue}; // 修改为新值\n`;
+    return code;
+}
+
+function generateSearchCode(type, hasHeadNode, searchValue, foundPositions) {
+    let code = '';
+    code += `// 在链表中搜索值 ${searchValue}\n`;
+    code += `let curr = head;\n`;
+    if (hasHeadNode) code += `curr = curr.next; // 跳过头节点\n`;
+    code += `let idx = 0;\n`;
+    if (type === 'circular') {
+        code += `let first = curr;\n`;
+        code += `do {\n`;
+        code += `    if (curr.value === ${searchValue}) results.push(idx);\n`;
+        code += `    curr = curr.next;\n`;
+        code += `    idx++;\n`;
+        code += `} while (curr && curr !== first);\n`;
+    } else {
+        code += `while (curr) {\n`;
+        code += `    if (curr.value === ${searchValue}) results.push(idx);\n`;
+        code += `    curr = curr.next;\n`;
+        code += `    idx++;\n`;
+        code += `}\n`;
+    }
+    code += `// 找到位置: ${foundPositions.length > 0 ? foundPositions.join(', ') : '未找到'}\n`;
+    return code;
+}
+
+// ============================
+//  RENDERING
+// ============================
+const listDisplay = document.getElementById('listDisplay');
+const logList = document.getElementById('logList');
+
+function renderList(highlightIdx = -1, foundIdxs = []) {
+    listDisplay.innerHTML = '';
+
+    const arr = list.toArray();
+    const size = arr.length;
+
+    if (size === 0) {
+        listDisplay.innerHTML = '<div class="empty-message"><span class="icon">📭</span>链表为空，请插入节点</div>';
+        return;
+    }
+
+    const fragment = document.createDocumentFragment();
+
+    // Helper to create a node box
+    function createNodeBox(value, isHead, idx, extraClass = '') {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'node-wrapper';
+
+        const box = document.createElement('div');
+        box.className = 'node-box' + (isHead ? ' head-node' : '') + (extraClass ? ' ' + extraClass : '');
+        box.setAttribute('data-idx', idx);
+
+        const valDiv = document.createElement('div');
+        valDiv.className = 'node-value';
+        valDiv.textContent = isHead ? 'HEAD' : value;
+
+        const metaDiv = document.createElement('div');
+        metaDiv.className = 'node-meta';
+        if (isHead) {
+            metaDiv.innerHTML = '<span>头节点</span>';
+        } else {
+            metaDiv.innerHTML = `<span>位置:${idx}</span>`;
+            if (list.type === 'doubly') {
+                metaDiv.innerHTML += '<span>|</span><span>⟷</span>';
+            }
+        }
+
+        box.appendChild(valDiv);
+        box.appendChild(metaDiv);
+        wrapper.appendChild(box);
+        return wrapper;
+    }
+
+    // Helper to create an arrow
+    function createArrow() {
+        const arrow = document.createElement('div');
+        arrow.className = 'arrow';
+        if (list.type === 'doubly') {
+            arrow.innerHTML = '⟷';
+            arrow.style.color = '#8e44ad';
+        } else {
+            arrow.innerHTML = '→';
+        }
+        arrow.style.fontSize = '1.3rem';
+        return arrow;
+    }
+
+    // Render head node if present
+    let displayIdx = 0;
+    if (list.hasHeadNode) {
+        fragment.appendChild(createNodeBox(null, true, -1));
+        fragment.appendChild(createArrow());
+    }
+
+    // Render data nodes
+    for (let i = 0; i < arr.length; i++) {
+        let extraClass = '';
+        if (i === highlightIdx) extraClass = 'highlight';
+        else if (foundIdxs.includes(i)) extraClass = 'found';
+
+        fragment.appendChild(createNodeBox(arr[i], false, i, extraClass));
+
+        if (i < arr.length - 1) {
+            fragment.appendChild(createArrow());
+        }
+    }
+
+    // Null terminator (not for circular)
+    if (list.type !== 'circular') {
+        const nullDiv = document.createElement('div');
+        nullDiv.className = 'null-symbol';
+        nullDiv.textContent = 'NULL';
+        fragment.appendChild(nullDiv);
+    } else if (arr.length > 0) {
+        // Circular indicator - arrow back to first
+        const circArrow = document.createElement('div');
+        circArrow.className = 'arrow';
+        circArrow.innerHTML = '↺';
+        circArrow.style.color = '#e67e22';
+        circArrow.style.fontSize = '1.4rem';
+        circArrow.title = '循环回到头部';
+        fragment.appendChild(circArrow);
+    }
+
+    listDisplay.appendChild(fragment);
+}
+
+function renderLog() {
+    if (logEntries.length === 0) {
+        logList.innerHTML = '<div class="log-empty">等待操作…</div>';
+        return;
+    }
+
+    logList.innerHTML = '';
+    // Show newest first
+    const reversed = [...logEntries].reverse();
+    for (const entry of reversed) {
+        const div = document.createElement('div');
+        div.className = 'log-entry';
+
+        const header = document.createElement('div');
+        header.className = 'log-header';
+
+        const badge = document.createElement('span');
+        badge.className = `log-badge badge-${entry.opType}`;
+        badge.textContent = entry.opLabel;
+        header.appendChild(badge);
+
+        if (entry.time) {
+            const time = document.createElement('span');
+            time.className = 'log-time';
+            time.textContent = entry.time;
+            header.appendChild(time);
+        }
+
+        div.appendChild(header);
+
+        if (entry.code) {
+            const codeBlock = document.createElement('div');
+            codeBlock.className = 'log-code';
+            codeBlock.textContent = entry.code;
+            div.appendChild(codeBlock);
+        }
+
+        if (entry.result) {
+            const result = document.createElement('div');
+            result.className = `log-result ${entry.resultType || ''}`;
+            result.textContent = entry.result;
+            div.appendChild(result);
+        }
+
+        logList.appendChild(div);
+    }
+}
+
+function addLog(opType, opLabel, code, result, resultType = '') {
+    const now = new Date();
+    const time = now.toLocaleTimeString('zh-CN', { hour12: false });
+    logEntries.push({ opType, opLabel, code, result, time, resultType });
+    // Keep max 100 in memory
+    if (logEntries.length > 100) logEntries.shift();
+    saveLog();
+    renderLog();
+}
+
+function updateInfo() {
+    document.getElementById('infoType').textContent =
+        list.type === 'singly' ? '单链表' : list.type === 'doubly' ? '双链表' : '循环链表';
+    document.getElementById('infoHead').textContent = list.hasHeadNode ? '有（头节点）' : '无';
+    document.getElementById('infoSize').textContent = list.getSize();
+}
+
+function refreshAll(highlightIdx = -1, foundIdxs = []) {
+    renderList(highlightIdx, foundIdxs);
+    updateInfo();
+    saveState();
+}
+
+// ============================
+//  OPERATIONS
+// ============================
+function doInsertHead() {
+    const valInput = document.getElementById('inputValue');
+    const value = parseInt(valInput.value);
+    if (isNaN(value)) { alert('请输入有效的数值'); return; }
+
+    const size = list.getSize();
+    const code = generateInsertCode(list.type, list.hasHeadNode, 0, value, size);
+    const success = list.insertHead(value);
+    if (success) {
+        addLog('insert', '头部插入', code, `✅ 成功在头部插入节点 ${value}`, 'success');
+        refreshAll(0);
+        // Remove highlight after 1.5s
+        setTimeout(() => refreshAll(), 1500);
+    }
+}
+
+function doInsertTail() {
+    const valInput = document.getElementById('inputValue');
+    const value = parseInt(valInput.value);
+    if (isNaN(value)) { alert('请输入有效的数值'); return; }
+
+    const size = list.getSize();
+    const code = generateInsertCode(list.type, list.hasHeadNode, size, value, size);
+    const success = list.insertTail(value);
+    if (success) {
+        const newIdx = list.getSize() - 1;
+        addLog('insert', '尾部插入', code, `✅ 成功在尾部插入节点 ${value}`, 'success');
+        refreshAll(newIdx);
+        setTimeout(() => refreshAll(), 1500);
+    }
+}
+
+function doInsertAt() {
+    const valInput = document.getElementById('inputValue');
+    const posInput = document.getElementById('inputPos');
+    const value = parseInt(valInput.value);
+    const pos = parseInt(posInput.value);
+    if (isNaN(value)) { alert('请输入有效的数值'); return; }
+    if (isNaN(pos) || pos < 0) { alert('请输入有效的位置（≥0）'); return; }
+
+    const size = list.getSize();
+    if (pos > size) {
+        addLog('insert', '位置插入', '', `❌ 位置 ${pos} 越界（当前链表大小: ${size}，可插入范围: 0~${size}）`, 'fail');
+        renderLog();
+        return;
+    }
+
+    const code = generateInsertCode(list.type, list.hasHeadNode, pos, value, size);
+    const success = list.insertAt(pos, value);
+    if (success) {
+        addLog('insert', '位置插入', code, `✅ 成功在位置 ${pos} 插入节点 ${value}`, 'success');
+        refreshAll(pos);
+        setTimeout(() => refreshAll(), 1500);
+    }
+}
+
+function doDeleteAt() {
+    const posInput = document.getElementById('inputPos');
+    const pos = parseInt(posInput.value);
+    if (isNaN(pos) || pos < 0) { alert('请输入有效的位置（≥0）'); return; }
+
+    const size = list.getSize();
+    if (size === 0) {
+        addLog('delete', '位置删除', '', '❌ 链表为空，无法删除', 'fail');
+        renderLog();
+        return;
+    }
+    if (pos >= size) {
+        addLog('delete', '位置删除', '', `❌ 位置 ${pos} 越界（有效范围: 0~${size - 1}）`, 'fail');
+        renderLog();
+        return;
+    }
+
+    const node = list.getNodeAt(pos);
+    const oldValue = node ? node.value : '?';
+    const code = generateDeleteCode(list.type, list.hasHeadNode, pos, oldValue, size);
+    const success = list.deleteAt(pos);
+    if (success) {
+        addLog('delete', '位置删除', code, `✅ 成功删除位置 ${pos} 的节点（值: ${oldValue}）`, 'success');
+        refreshAll();
+    }
+}
+
+function doDeleteVal() {
+    const valInput = document.getElementById('inputValue');
+    const value = parseInt(valInput.value);
+    if (isNaN(value)) { alert('请输入有效的数值'); return; }
+
+    const size = list.getSize();
+    if (size === 0) {
+        addLog('delete', '按值删除', '', '❌ 链表为空，无法删除', 'fail');
+        renderLog();
+        return;
+    }
+
+    const pos = list.deleteByValue(value);
+    if (pos >= 0) {
+        const code = generateDeleteCode(list.type, list.hasHeadNode, pos, value, size);
+        addLog('delete', '按值删除', code, `✅ 成功删除值为 ${value} 的节点（原位置: ${pos}）`, 'success');
+    } else {
+        addLog('delete', '按值删除', `// 搜索值 ${value}\n// 未找到匹配节点`, `❌ 未找到值为 ${value} 的节点`, 'fail');
+    }
+    refreshAll();
+}
+
+function doUpdate() {
+    const valInput = document.getElementById('inputValue');
+    const posInput = document.getElementById('inputPos');
+    const value = parseInt(valInput.value);
+    const pos = parseInt(posInput.value);
+    if (isNaN(value)) { alert('请输入有效的数值'); return; }
+    if (isNaN(pos) || pos < 0) { alert('请输入有效的位置（≥0）'); return; }
+
+    const size = list.getSize();
+    if (pos >= size || size === 0) {
+        addLog('update', '按位修改', '', `❌ 位置 ${pos} 越界（有效范围: 0~${size > 0 ? size - 1 : '空链表'}）`, 'fail');
+        renderLog();
+        return;
+    }
+
+    const oldNode = list.getNodeAt(pos);
+    const oldValue = oldNode ? oldNode.value : '?';
+    const code = generateUpdateCode(list.type, list.hasHeadNode, pos, oldValue, value);
+    const success = list.updateAt(pos, value);
+    if (success) {
+        addLog('update', '按位修改', code, `✅ 成功将位置 ${pos} 的值从 ${oldValue} 修改为 ${value}`, 'success');
+        refreshAll(pos);
+        setTimeout(() => refreshAll(), 1500);
+    }
+}
+
+function doSearch() {
+    const valInput = document.getElementById('inputValue');
+    const value = parseInt(valInput.value);
+    if (isNaN(value)) { alert('请输入有效的数值'); return; }
+
+    const foundPositions = list.search(value);
+    const code = generateSearchCode(list.type, list.hasHeadNode, value, foundPositions);
+    if (foundPositions.length > 0) {
+        addLog('search', '搜索值', code,
+            `✅ 找到值 ${value}，位置: ${foundPositions.join(', ')}（共 ${foundPositions.length} 个）`, 'success');
+        refreshAll(-1, foundPositions);
+        setTimeout(() => refreshAll(), 2500);
+    } else {
+        addLog('search', '搜索值', code, `❌ 未找到值 ${value}`, 'fail');
+        refreshAll();
+    }
+}
+
+function doRandom() {
+    list.clear();
+    const count = 5;
+    const values = [];
+    for (let i = 0; i < count; i++) {
+        const v = Math.floor(Math.random() * 90) + 10; // 10-99
+        values.push(v);
+        list.insertTail(v);
+    }
+    const code = `// 随机生成 ${count} 个节点\n`;
+    addLog('random', '随机生成', code, `✅ 已随机创建 ${count} 个节点: [${values.join(', ')}]`, 'success');
+    refreshAll();
+}
+
+function doReset() {
+    list.clear();
+    addLog('reset', '清空链表', '', '🗑️ 链表已清空', '');
+    refreshAll();
+}
+
+function switchListType(newType) {
+    const values = list.toArray();
+    const hadHeadNode = list.hasHeadNode;
+
+    // For doubly/circular, force head node off by default
+    let useHeadNode = hadHeadNode;
+    if (newType !== 'singly') {
+        useHeadNode = false;
+    }
+
+    list = new LinkedList(newType, useHeadNode);
+    for (const v of values) {
+        list.insertTail(v);
+    }
+
+    document.getElementById('headNodeToggle').checked = useHeadNode;
+    updateHeadNodeVisibility();
+
+    const typeNames = { singly: '单链表', doubly: '双链表', circular: '循环链表' };
+    const code = `// 切换链表类型\nlist = new LinkedList('${newType}', ${useHeadNode});\n// 保留原有数据: [${values.join(', ')}]`;
+    addLog('switch', '切换类型', code, `✅ 已切换为「${typeNames[newType]}」（保留数据）`, 'success');
+    refreshAll();
+}
+
+function updateHeadNodeVisibility() {
+    const card = document.getElementById('headNodeCard');
+    const hint = document.getElementById('headNodeHint');
+    if (list.type === 'singly') {
+        card.style.display = '';
+        if (list.hasHeadNode) {
+            hint.textContent = '头节点不存储数据，便于统一插入/删除逻辑';
+        } else {
+            hint.textContent = '无头节点时，头部插入/删除需要特殊处理';
+        }
+    } else if (list.type === 'doubly') {
+        card.style.display = '';
+        document.getElementById('headNodeToggle').checked = false;
+        list.hasHeadNode = false;
+        hint.textContent = '双链表无需头节点，prev 指针已提供完整的前驱访问';
+    } else {
+        card.style.display = '';
+        document.getElementById('headNodeToggle').checked = false;
+        list.hasHeadNode = false;
+        hint.textContent = '循环链表无需头节点，循环结构天然支持任意位置操作';
+    }
+    saveState();
+    refreshAll();
+}
+
+// ============================
+//  EVENT HANDLERS
+// ============================
+document.getElementById('btnInsertHead').addEventListener('click', doInsertHead);
+document.getElementById('btnInsertTail').addEventListener('click', doInsertTail);
+document.getElementById('btnInsertAt').addEventListener('click', doInsertAt);
+document.getElementById('btnDeleteAt').addEventListener('click', doDeleteAt);
+document.getElementById('btnDeleteVal').addEventListener('click', doDeleteVal);
+document.getElementById('btnUpdate').addEventListener('click', doUpdate);
+document.getElementById('btnSearch').addEventListener('click', doSearch);
+document.getElementById('btnRandom').addEventListener('click', doRandom);
+document.getElementById('btnReset').addEventListener('click', doReset);
+document.getElementById('btnClearLog').addEventListener('click', () => {
+    logEntries = [];
+    saveLog();
+    renderLog();
+});
+
+// Type tabs
+document.querySelectorAll('.type-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+        const newType = this.getAttribute('data-type');
+        if (newType === list.type) return;
+
+        document.querySelectorAll('.type-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+        switchListType(newType);
+    });
+});
+
+// Head node toggle
+document.getElementById('headNodeToggle').addEventListener('change', function() {
+    if (list.type !== 'singly') {
+        this.checked = false;
+        return;
+    }
+    const values = list.toArray();
+    list = new LinkedList(list.type, this.checked);
+    for (const v of values) {
+        list.insertTail(v);
+    }
+    updateHeadNodeVisibility();
+    const code = this.checked
+        ? `// 添加头节点\nlist = new LinkedList('${list.type}', true);\nhead = new ListNode('HEAD');\n// 原有数据接在头节点之后`
+        : `// 移除头节点\nlist = new LinkedList('${list.type}', false);\n// 数据不变，头指针直接指向第一个数据节点`;
+    addLog('switch', this.checked ? '添加头节点' : '移除头节点', code,
+        `✅ 已${this.checked ? '添加' : '移除'}头节点（保留数据）`, 'success');
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.key === 'Enter') {
+        e.preventDefault();
+        doInsertAt();
+    }
+});
+
+// Enter key in value input -> insert tail (convenience)
+document.getElementById('inputValue').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        doInsertTail();
+    }
+});
+document.getElementById('inputPos').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        doInsertAt();
+    }
+});
+
+// ============================
+//  INITIALIZATION
+// ============================
+function init() {
+    const state = loadState();
+    list = buildListFromState(state);
+
+    // Set UI to match state
+    document.querySelectorAll('.type-tab').forEach(t => {
+        t.classList.toggle('active', t.getAttribute('data-type') === list.type);
+    });
+    document.getElementById('headNodeToggle').checked = list.hasHeadNode;
+    updateHeadNodeVisibility();
+
+    // Restore log
+    logEntries = loadLog();
+    renderLog();
+    refreshAll();
+}
+
+init();
+</script>
+
+</body>
+</html>
