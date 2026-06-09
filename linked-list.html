@@ -683,7 +683,6 @@ class LinkedList {
         let idx = 0;
         if (this.type === 'circular') {
             const first = curr;
-            const last = this.getLastNode();
             while (idx < pos) {
                 prev = curr;
                 curr = curr.next;
@@ -754,6 +753,11 @@ class LinkedList {
 
         // Insert at position 0
         if (pos === 0) {
+            // CRITICAL: For circular list, save last node BEFORE modifying head,
+            // otherwise getLastNode() will loop infinitely (old last.next still
+            // points to old head, but getFirstRealNode() already returns new head).
+            const oldLast = (this.type === 'circular') ? this.getLastNode() : null;
+
             if (this.hasHeadNode) {
                 newNode.next = this.head.next;
                 if (this.type === 'doubly') {
@@ -761,20 +765,14 @@ class LinkedList {
                     newNode.prev = this.head;
                 }
                 this.head.next = newNode;
-                if (this.type === 'circular') {
-                    const last = this.getLastNode();
-                    if (last) last.next = newNode;
-                }
+                if (oldLast) oldLast.next = newNode;
             } else {
                 newNode.next = this.head;
                 if (this.type === 'doubly' && this.head) {
                     this.head.prev = newNode;
                 }
                 this.head = newNode;
-                if (this.type === 'circular') {
-                    const last = this.getLastNode();
-                    if (last) last.next = newNode;
-                }
+                if (oldLast) oldLast.next = newNode;
             }
             return true;
         }
@@ -824,6 +822,10 @@ class LinkedList {
             const toDelete = this.getFirstRealNode();
             if (!toDelete) return false;
 
+            // CRITICAL: For circular list, save last node BEFORE modifying head,
+            // otherwise getLastNode() returns wrong node (toDelete leaks back into traversal).
+            const oldLast = (this.type === 'circular' && size > 1) ? this.getLastNode() : null;
+
             if (this.hasHeadNode) {
                 this.head.next = toDelete.next;
                 if (this.type === 'doubly' && toDelete.next) {
@@ -831,9 +833,8 @@ class LinkedList {
                 }
                 if (this.type === 'circular' && size === 1) {
                     this.head.next = null;
-                } else if (this.type === 'circular') {
-                    const last = this.getLastNode();
-                    if (last) last.next = toDelete.next;
+                } else if (oldLast) {
+                    oldLast.next = toDelete.next;
                 }
             } else {
                 this.head = toDelete.next;
@@ -842,9 +843,8 @@ class LinkedList {
                 }
                 if (this.type === 'circular' && size === 1) {
                     this.head = null;
-                } else if (this.type === 'circular') {
-                    const last = this.getLastNode();
-                    if (last) last.next = this.head;
+                } else if (oldLast) {
+                    oldLast.next = this.head;
                 }
             }
             return true;
