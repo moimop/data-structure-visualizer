@@ -995,45 +995,52 @@ class LinkedList {
 }
 
 // ============================
-//  APPLICATION STATE
+//  APPLICATION STATE  (每种链表类型独立存储)
 // ============================
-const STORAGE_KEY = 'linked_list_state';
-const LOG_STORAGE_KEY = 'linked_list_log';
+const ACTIVE_TYPE_KEY = 'linked_list_active_type';
+const LOG_STORAGE_KEY  = 'linked_list_log';
 
 let list;
 let logEntries = [];
 
-function getDefaultState() {
-    return {
-        type: 'singly',
-        hasHeadNode: false,
-        values: [10, 25, 38, 56, 72]
+function getStorageKey(type) {
+    return `linked_list_state_${type}`;
+}
+
+function getDefaultState(type) {
+    const defaults = {
+        singly:   { hasHeadNode: false, values: [10, 25, 38, 56, 72] },
+        doubly:   { hasHeadNode: false, values: [100, 200, 300] },
+        circular: { hasHeadNode: false, values: [5, 15, 25, 35] }
     };
+    return defaults[type] || defaults.singly;
 }
 
 function saveState() {
     const state = {
-        type: list.type,
         hasHeadNode: list.hasHeadNode,
         values: list.toArray()
     };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(getStorageKey(list.type), JSON.stringify(state));
+    localStorage.setItem(ACTIVE_TYPE_KEY, list.type);
 }
 
-function loadState() {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return getDefaultState();
+function loadState(type) {
+    const raw = localStorage.getItem(getStorageKey(type));
+    if (!raw) return getDefaultState(type);
     try {
         const state = JSON.parse(raw);
-        if (!state.type || !Array.isArray(state.values)) return getDefaultState();
-        return state;
+        if (!Array.isArray(state.values)) return getDefaultState(type);
+        return {
+            hasHeadNode: (type === 'singly') ? (state.hasHeadNode || false) : false,
+            values: state.values
+        };
     } catch {
-        return getDefaultState();
+        return getDefaultState(type);
     }
 }
 
 function saveLog() {
-    // Keep max 50 log entries in localStorage
     const toSave = logEntries.slice(-50);
     localStorage.setItem(LOG_STORAGE_KEY, JSON.stringify(toSave));
 }
@@ -1048,8 +1055,9 @@ function loadLog() {
     }
 }
 
-function buildListFromState(state) {
-    const l = new LinkedList(state.type, state.hasHeadNode);
+function buildListFromState(type, state) {
+    const hasHead = (type === 'singly') ? state.hasHeadNode : false;
+    const l = new LinkedList(type, hasHead);
     for (const v of state.values) {
         l.insertTail(v);
     }
@@ -1577,26 +1585,24 @@ function doReset() {
 }
 
 function switchListType(newType) {
-    const values = list.toArray();
-    const hadHeadNode = list.hasHeadNode;
+    if (newType === list.type) return;
 
-    // For doubly/circular, force head node off by default
-    let useHeadNode = hadHeadNode;
-    if (newType !== 'singly') {
-        useHeadNode = false;
-    }
+    // 1) 保存当前链表到其类型专属存储
+    saveState();
 
-    list = new LinkedList(newType, useHeadNode);
-    for (const v of values) {
-        list.insertTail(v);
-    }
+    // 2) 加载目标类型的独立数据
+    const state = loadState(newType);
+    list = buildListFromState(newType, state);
 
-    document.getElementById('headNodeToggle').checked = useHeadNode;
+    // 3) 更新 UI
+    document.querySelectorAll('.type-tab').forEach(t => {
+        t.classList.toggle('active', t.getAttribute('data-type') === newType);
+    });
+    document.getElementById('headNodeToggle').checked = (newType === 'singly') ? state.hasHeadNode : false;
     updateHeadNodeVisibility();
 
     const typeNames = { singly: '单链表', doubly: '双链表', circular: '循环链表' };
-    const code = `// 切换链表类型\nlist = new LinkedList('${newType}', ${useHeadNode});\n// 保留原有数据: [${values.join(', ')}]`;
-    addLog('switch', '切换类型', code, `✅ 已切换为「${typeNames[newType]}」（保留数据）`, 'success');
+    addLog('switch', '切换类型', '', `✅ 已切换为「${typeNames[newType]}」`, 'success');
     refreshAll();
 }
 
@@ -1621,8 +1627,6 @@ function updateHeadNodeVisibility() {
         list.hasHeadNode = false;
         hint.textContent = '循环链表无需头节点，循环结构天然支持任意位置操作';
     }
-    saveState();
-    refreshAll();
 }
 
 // ============================
@@ -1648,9 +1652,6 @@ document.querySelectorAll('.type-tab').forEach(tab => {
     tab.addEventListener('click', function() {
         const newType = this.getAttribute('data-type');
         if (newType === list.type) return;
-
-        document.querySelectorAll('.type-tab').forEach(t => t.classList.remove('active'));
-        this.classList.add('active');
         switchListType(newType);
     });
 });
@@ -1667,6 +1668,8 @@ document.getElementById('headNodeToggle').addEventListener('change', function() 
         list.insertTail(v);
     }
     updateHeadNodeVisibility();
+    saveState();
+    refreshAll();
     const code = this.checked
         ? `// 添加头节点\nlist = new LinkedList('${list.type}', true);\nhead = new ListNode('HEAD');\n// 原有数据接在头节点之后`
         : `// 移除头节点\nlist = new LinkedList('${list.type}', false);\n// 数据不变，头指针直接指向第一个数据节点`;
@@ -1700,14 +1703,16 @@ document.getElementById('inputPos').addEventListener('keydown', function(e) {
 //  INITIALIZATION
 // ============================
 function init() {
-    const state = loadState();
-    list = buildListFromState(state);
+    // Restore which type was active last session
+    const activeType = localStorage.getItem(ACTIVE_TYPE_KEY) || 'singly';
+    const state = loadState(activeType);
+    list = buildListFromState(activeType, state);
 
-    // Set UI to match state
+    // Set UI to match
     document.querySelectorAll('.type-tab').forEach(t => {
-        t.classList.toggle('active', t.getAttribute('data-type') === list.type);
+        t.classList.toggle('active', t.getAttribute('data-type') === activeType);
     });
-    document.getElementById('headNodeToggle').checked = list.hasHeadNode;
+    document.getElementById('headNodeToggle').checked = (activeType === 'singly') ? state.hasHeadNode : false;
     updateHeadNodeVisibility();
 
     // Restore log
