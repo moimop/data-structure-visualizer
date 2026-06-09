@@ -779,7 +779,19 @@ class LinkedList {
             return true;
         }
 
-        // Insert at middle/end
+        // Insert at tail (pos === size) — use getLastNode() to avoid circular traversal bug
+        if (pos === size) {
+            const last = this.getLastNode();
+            newNode.next = last.next; // for circular: points to first; for others: null
+            if (this.type === 'doubly') {
+                newNode.prev = last;
+                if (last.next) last.next.prev = newNode;
+            }
+            last.next = newNode;
+            return true;
+        }
+
+        // Insert at middle
         const { prev } = this.getNodeWithPrevAt(pos);
         if (!prev && !this.hasHeadNode && pos > 0) return false;
 
@@ -789,10 +801,6 @@ class LinkedList {
             if (prev.next) prev.next.prev = newNode;
         }
         prev.next = newNode;
-
-        if (this.type === 'circular' && pos === size) {
-            newNode.next = this.getFirstRealNode();
-        }
         return true;
     }
 
@@ -842,7 +850,27 @@ class LinkedList {
             return true;
         }
 
-        // Delete at middle/end
+        // Delete at tail (pos === size - 1) — use getLastNode() to avoid circular traversal bug
+        if (pos === size - 1) {
+            const { prev } = this.getNodeWithPrevAt(pos);
+            // For circular with 1 node, getNodeWithPrevAt returns null prev; handle below via pos===0 already
+            if (!prev) return false;
+            if (this.type === 'circular') {
+                const firstData = this.getFirstRealNode();
+                prev.next = firstData;
+            } else {
+                prev.next = null;
+            }
+            if (this.type === 'doubly') {
+                // prev.next is already null (or firstData for circular)
+                if (this.type !== 'circular') {
+                    // No need to update prev.next.prev since prev.next is null
+                }
+            }
+            return true;
+        }
+
+        // Delete at middle
         const { prev, curr } = this.getNodeWithPrevAt(pos);
         if (!prev || !curr) return false;
 
