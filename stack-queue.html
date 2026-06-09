@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>栈和队列 — 基本操作可视化</title>
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --card-bg: #ffffff;
+            --primary: #4a90d9;
+            --danger: #e74c3c;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --purple: #8e44ad;
+            --teal: #00bcd4;
+            --text: #2c3e50;
+            --text-light: #636e72;
+            --border: #e0e4e8;
+            --shadow: 0 2px 12px rgba(0,0,0,0.08);
+            --radius: 10px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* ===== Header ===== */
+        .header {
+            width: 100%;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: #fff;
+            padding: 16px 24px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            position: relative;
+        }
+        .header h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: 1px; }
+        .header .back-btn {
+            position: absolute;
+            left: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #fff;
+            text-decoration: none;
+            font-size: 0.9rem;
+            padding: 6px 14px;
+            border: 1px solid rgba(255,255,255,0.4);
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .header .back-btn:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.7); }
+
+        /* ===== Main Layout ===== */
+        .main-container {
+            display: flex;
+            flex: 1;
+            width: 100%;
+            max-width: 1400px;
+            gap: 16px;
+            padding: 16px;
+            height: calc(100vh - 80px);
+        }
+
+        /* ===== Sidebar ===== */
+        .sidebar {
+            width: 300px;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 16px;
+            border: 1px solid var(--border);
+        }
+        .card-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 6px;
+            display: inline-block;
+        }
+
+        /* ===== Type Tabs ===== */
+        .type-tabs { display: flex; gap: 4px; }
+        .type-tab {
+            flex: 1;
+            padding: 12px 8px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-light);
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .type-tab:hover { border-color: var(--primary); color: var(--primary); }
+        .type-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+        /* ===== Input & Buttons ===== */
+        .input-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .input-row input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border 0.2s;
+        }
+        .input-row input:focus { border-color: var(--primary); }
+        .input-row label {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-light);
+            white-space: nowrap;
+        }
+
+        .btn {
+            padding: 10px 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        .btn:active { transform: scale(0.96); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
+        .btn-push { background: var(--success); color: #fff; }
+        .btn-push:hover:not(:disabled) { background: #219a52; }
+        .btn-pop { background: var(--danger); color: #fff; }
+        .btn-pop:hover:not(:disabled) { background: #c0392b; }
+        .btn-peek { background: var(--teal); color: #fff; }
+        .btn-peek:hover:not(:disabled) { background: #0097a7; }
+        .btn-random { background: var(--purple); color: #fff; }
+        .btn-random:hover:not(:disabled) { background: #732d91; }
+        .btn-reset { background: #636e72; color: #fff; }
+        .btn-reset:hover:not(:disabled) { background: #4a5559; }
+
+        .btn-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+        .btn-row .btn { flex: 1; min-width: 80px; }
+
+        /* ===== Info Row ===== */
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.82rem;
+            color: var(--text-light);
+            padding: 3px 0;
+        }
+        .info-row span:last-child { font-weight: 700; color: var(--text); }
+
+        /* ===== Right Panel ===== */
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        /* ===== Visual Area ===== */
+        .visual-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 300px;
+        }
+        .visual-card .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            flex-shrink: 0;
+        }
+        .visual-card .card-header .card-title {
+            margin-bottom: 0;
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        /* Stack visual */
+        .stack-container {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+        }
+        .stack-top-label {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 4px;
+            text-align: center;
+        }
+        .stack-top-label .arrow-down { font-size: 1.2rem; }
+        .stack-item {
+            width: 180px;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, #eaf2fb, #dce8f5);
+            border: 2px solid var(--primary);
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text);
+            margin: 3px 0;
+            transition: all 0.3s;
+            animation: stackAppear 0.35s ease-out;
+            position: relative;
+        }
+        @keyframes stackAppear {
+            from { opacity: 0; transform: translateY(-20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .stack-item.highlight {
+            border-color: var(--danger);
+            box-shadow: 0 0 14px rgba(231,76,60,0.35);
+            animation: pulse 0.5s ease-in-out 3;
+        }
+        .stack-item.peeked {
+            border-color: var(--success);
+            box-shadow: 0 0 14px rgba(39,174,96,0.4);
+            animation: pulse 0.5s ease-in-out 3;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.04); }
+        }
+        .stack-item .item-idx {
+            font-size: 0.65rem;
+            color: var(--text-light);
+            display: block;
+        }
+        .stack-bottom-label {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        /* Queue visual */
+        .queue-container {
+            flex: 1;
+            overflow-x: auto;
+            overflow-y: hidden;
+            display: flex;
+            align-items: center;
+            padding: 10px;
+        }
+        .queue-display {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            white-space: nowrap;
+            padding: 8px 10px;
+        }
+        .queue-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 0 4px;
+            white-space: nowrap;
+        }
+        .queue-item {
+            min-width: 70px;
+            padding: 14px 18px;
+            background: linear-gradient(135deg, #eaf2fb, #dce8f5);
+            border: 2px solid var(--primary);
+            border-radius: 10px;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text);
+            margin: 0 2px;
+            transition: all 0.3s;
+            animation: queueAppear 0.35s ease-out;
+        }
+        @keyframes queueAppear {
+            from { opacity: 0; transform: scale(0.7); }
+            to   { opacity: 1; transform: scale(1); }
+        }
+        .queue-item.highlight {
+            border-color: var(--danger);
+            box-shadow: 0 0 14px rgba(231,76,60,0.35);
+            animation: pulse 0.5s ease-in-out 3;
+        }
+        .queue-item.peeked {
+            border-color: var(--success);
+            box-shadow: 0 0 14px rgba(39,174,96,0.4);
+            animation: pulse 0.5s ease-in-out 3;
+        }
+        .queue-arrow {
+            font-size: 1.3rem;
+            color: #b0b8c1;
+            margin: 0 4px;
+            font-weight: 300;
+        }
+
+        .empty-message {
+            width: 100%;
+            text-align: center;
+            color: #b0b8c1;
+            font-size: 1.1rem;
+            padding: 40px;
+        }
+        .empty-message .icon { font-size: 2.8rem; display: block; margin-bottom: 10px; }
+
+        /* ===== Log Area ===== */
+        .log-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            max-height: 240px;
+            overflow: hidden;
+        }
+        .log-card .card-header {
+            padding: 12px 16px 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .log-card .card-title { margin-bottom: 0; border-bottom: none; padding-bottom: 0; }
+        .log-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 16px 12px;
+            font-family: 'Consolas', 'Source Code Pro', 'Courier New', monospace;
+            font-size: 0.78rem;
+        }
+        .log-entry {
+            border-bottom: 1px solid #f0f0f0;
+            padding: 10px 0;
+            animation: logSlide 0.3s ease-out;
+        }
+        @keyframes logSlide {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .log-entry:last-child { border-bottom: none; }
+        .log-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+        .log-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 4px;
+            color: #fff;
+            white-space: nowrap;
+        }
+        .badge-push  { background: var(--success); }
+        .badge-pop   { background: var(--danger); }
+        .badge-peek  { background: var(--teal); }
+        .badge-reset { background: #636e72; }
+        .badge-random{ background: var(--purple); }
+        .badge-switch{ background: var(--primary); }
+        .log-time { font-size: 0.7rem; color: #aaa; }
+        .log-code {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 8px 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            white-space: pre;
+            font-size: 0.73rem;
+            line-height: 1.5;
+        }
+        .log-result {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            margin-top: 4px;
+        }
+        .log-result.success { color: var(--success); }
+        .log-result.fail { color: var(--danger); }
+        .log-empty {
+            text-align: center;
+            color: #b0b8c1;
+            padding: 24px;
+            font-size: 0.9rem;
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 800px) {
+            .main-container { flex-direction: column; height: auto; }
+            .sidebar { width: 100%; min-width: 0; }
+            .right-panel { min-height: 400px; }
+            .log-card { max-height: 180px; }
+            .stack-item { width: 140px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ===== Header ===== -->
+<div class="header">
+    <a class="back-btn" href="index.html" title="返回目录">← 目录</a>
+    <h1>📦 栈和队列的基本操作可视化</h1>
+</div>
+
+<!-- ===== Main ===== -->
+<div class="main-container">
+
+    <!-- ===== Sidebar ===== -->
+    <div class="sidebar">
+
+        <!-- Type Tabs -->
+        <div class="card">
+            <div class="card-title">📋 数据结构</div>
+            <div class="type-tabs" id="typeTabs">
+                <button class="type-tab active" data-type="stack">📚 栈 Stack</button>
+                <button class="type-tab" data-type="queue">🚶 队列 Queue</button>
+            </div>
+        </div>
+
+        <!-- Operations -->
+        <div class="card">
+            <div class="card-title">🔧 操作面板</div>
+            <div class="input-row">
+                <label for="inputValue">值:</label>
+                <input type="number" id="inputValue" placeholder="输入数值" value="42">
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-push" id="btnPush">压栈 / 入队</button>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-pop" id="btnPop">弹栈 / 出队</button>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-peek" id="btnPeek">🔍 查看顶部/队首</button>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-random" id="btnRandom">🎲 随机生成</button>
+            </div>
+            <button class="btn btn-reset" id="btnReset" style="width:100%;margin-top:4px;">
+                🗑️ 清空
+            </button>
+        </div>
+
+        <!-- Info -->
+        <div class="card">
+            <div class="card-title">📊 信息</div>
+            <div class="info-row"><span>当前结构</span><span id="infoType">栈 (Stack)</span></div>
+            <div class="info-row"><span>元素数量</span><span id="infoSize">0</span></div>
+            <div class="info-row"><span id="infoTopLabel">栈顶</span><span id="infoTop">—</span></div>
+        </div>
+    </div>
+
+    <!-- ===== Right Panel ===== -->
+    <div class="right-panel">
+
+        <!-- Visual Display -->
+        <div class="visual-card">
+            <div class="card-header">
+                <span class="card-title">🎨 可视化</span>
+            </div>
+            <div class="stack-container" id="stackContainer">
+                <div class="empty-message"><span class="icon">📭</span>栈为空，请压入元素</div>
+            </div>
+            <div class="queue-container" id="queueContainer" style="display:none;">
+                <div class="empty-message"><span class="icon">📭</span>队列为空，请入队元素</div>
+            </div>
+        </div>
+
+        <!-- Log -->
+        <div class="log-card">
+            <div class="card-header">
+                <span class="card-title">📝 操作日志（含关键代码）</span>
+                <button class="btn" style="font-size:0.7rem;padding:4px 10px;background:#eee;color:#666;" id="btnClearLog">清空日志</button>
+            </div>
+            <div class="log-list" id="logList">
+                <div class="log-empty">等待操作…</div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+// ============================
+//  DATA MODEL
+// ============================
+class Stack {
+    constructor() { this.items = []; }
+    push(val)   { this.items.push(val); }
+    pop()       { return this.items.length > 0 ? this.items.pop() : null; }
+    peek()      { return this.items.length > 0 ? this.items[this.items.length - 1] : null; }
+    isEmpty()   { return this.items.length === 0; }
+    size()      { return this.items.length; }
+    toArray()   { return [...this.items]; }  // bottom → top
+    clear()     { this.items = []; }
+}
+
+class Queue {
+    constructor() { this.items = []; }
+    enqueue(val){ this.items.push(val); }
+    dequeue()   { return this.items.length > 0 ? this.items.shift() : null; }
+    peek()      { return this.items.length > 0 ? this.items[0] : null; }
+    isEmpty()   { return this.items.length === 0; }
+    size()      { return this.items.length; }
+    toArray()   { return [...this.items]; }  // front → rear
+    clear()     { this.items = []; }
+}
+
+// ============================
+//  APPLICATION STATE  (per-type independent storage)
+// ============================
+const ACTIVE_TYPE_KEY = 'stack_queue_active_type';
+const LOG_STORAGE_KEY  = 'stack_queue_log';
+
+let ds;   // current data structure (Stack or Queue instance)
+let logEntries = [];
+
+function getStorageKey(type) {
+    return `stack_queue_state_${type}`;
+}
+
+function getDefaultState(type) {
+    if (type === 'stack')  return { values: [10, 25, 38, 56, 72] };  // bottom→top
+    if (type === 'queue')  return { values: [5, 15, 25, 35, 50] };   // front→rear
+    return { values: [] };
+}
+
+function saveState() {
+    const type = (ds instanceof Stack) ? 'stack' : 'queue';
+    const state = { values: ds.toArray() };
+    localStorage.setItem(getStorageKey(type), JSON.stringify(state));
+    localStorage.setItem(ACTIVE_TYPE_KEY, type);
+}
+
+function loadState(type) {
+    const raw = localStorage.getItem(getStorageKey(type));
+    if (!raw) return getDefaultState(type);
+    try {
+        const state = JSON.parse(raw);
+        if (!Array.isArray(state.values)) return getDefaultState(type);
+        return { values: state.values };
+    } catch { return getDefaultState(type); }
+}
+
+function buildDS(type, state) {
+    if (type === 'stack') {
+        const s = new Stack();
+        for (const v of state.values) s.push(v);
+        return s;
+    } else {
+        const q = new Queue();
+        for (const v of state.values) q.enqueue(v);
+        return q;
+    }
+}
+
+function saveLog() {
+    const toSave = logEntries.slice(-50);
+    localStorage.setItem(LOG_STORAGE_KEY, JSON.stringify(toSave));
+}
+
+function loadLog() {
+    const raw = localStorage.getItem(LOG_STORAGE_KEY);
+    if (!raw) return [];
+    try { return JSON.parse(raw); } catch { return []; }
+}
+
+// ============================
+//  CODE SNIPPET GENERATION
+// ============================
+function generatePushCode(type, value) {
+    if (type === 'stack') {
+        return `// 压栈 (push) — 将元素添加到栈顶\nstack.push(${value});\n// 栈顶现在为: ${value}\n// LIFO: 最后进入的最先被弹出`;
+    } else {
+        return `// 入队 (enqueue) — 将元素添加到队尾\nqueue.push(${value});\n// 元素 ${value} 进入队尾\n// FIFO: 先进入的最先被服务`;
+    }
+}
+
+function generatePopCode(type, returnedValue) {
+    if (type === 'stack') {
+        return `// 弹栈 (pop) — 移除并返回栈顶元素\nlet top = stack.pop();\n// 返回值: ${returnedValue}\n// 栈顶元素被移除`;
+    } else {
+        return `// 出队 (dequeue) — 移除并返回队首元素\nlet front = queue.shift();\n// 返回值: ${returnedValue}\n// 队首元素被移除`;
+    }
+}
+
+function generatePeekCode(type, topValue) {
+    if (type === 'stack') {
+        return `// 查看栈顶 (peek) — 不修改栈\nlet top = stack[stack.length - 1];\n// 栈顶: ${topValue}\n// 栈本身未改变`;
+    } else {
+        return `// 查看队首 (peek) — 不修改队列\nlet front = queue[0];\n// 队首: ${topValue}\n// 队列本身未改变`;
+    }
+}
+
+function generateRandomCode(type, values, count) {
+    if (type === 'stack') {
+        return `// 随机生成 ${count} 个元素并依次压栈\n${values.map(v => `stack.push(${v});`).join('\n')}`;
+    } else {
+        return `// 随机生成 ${count} 个元素并依次入队\n${values.map(v => `queue.push(${v});`).join('\n')}`;
+    }
+}
+
+// ============================
+//  VISUAL RENDERING
+// ============================
+const stackContainer = document.getElementById('stackContainer');
+const queueContainer = document.getElementById('queueContainer');
+const logList = document.getElementById('logList');
+
+function currentType() { return (ds instanceof Stack) ? 'stack' : 'queue'; }
+
+function renderVisual(highlightIdx = -1, peekIdx = -1) {
+    const type = currentType();
+    const arr = ds.toArray();
+
+    if (type === 'stack') {
+        stackContainer.style.display = '';
+        queueContainer.style.display = 'none';
+        renderStack(arr, highlightIdx, peekIdx);
+    } else {
+        stackContainer.style.display = 'none';
+        queueContainer.style.display = '';
+        renderQueue(arr, highlightIdx, peekIdx);
+    }
+}
+
+function renderStack(arr, highlightIdx, peekIdx) {
+    stackContainer.innerHTML = '';
+
+    if (arr.length === 0) {
+        stackContainer.innerHTML = '<div class="empty-message"><span class="icon">📭</span>栈为空，请压入元素</div>';
+        return;
+    }
+
+    const wrapper = document.createElement('div');
+    wrapper.style.display = 'flex';
+    wrapper.style.flexDirection = 'column';
+    wrapper.style.alignItems = 'center';
+
+    // TOP label
+    const topLabel = document.createElement('div');
+    topLabel.className = 'stack-top-label';
+    topLabel.innerHTML = '<span class="arrow-down">▼</span> TOP（栈顶）';
+    wrapper.appendChild(topLabel);
+
+    // Render from top to bottom (reverse order)
+    for (let i = arr.length - 1; i >= 0; i--) {
+        const item = document.createElement('div');
+        item.className = 'stack-item';
+        if (i === highlightIdx) item.classList.add('highlight');
+        else if (i === peekIdx) item.classList.add('peeked');
+
+        const valSpan = document.createElement('span');
+        valSpan.textContent = arr[i];
+
+        const idxSpan = document.createElement('span');
+        idxSpan.className = 'item-idx';
+        idxSpan.textContent = `位置 ${i}`;
+
+        item.appendChild(valSpan);
+        item.appendChild(idxSpan);
+        wrapper.appendChild(item);
+    }
+
+    // BOTTOM label
+    const bottomLabel = document.createElement('div');
+    bottomLabel.className = 'stack-bottom-label';
+    bottomLabel.textContent = 'BOTTOM（栈底）';
+    wrapper.appendChild(bottomLabel);
+
+    stackContainer.appendChild(wrapper);
+
+    // Auto-scroll to top (where new items appear)
+    setTimeout(() => { stackContainer.scrollTop = 0; }, 50);
+}
+
+function renderQueue(arr, highlightIdx, peekIdx) {
+    queueContainer.innerHTML = '';
+
+    if (arr.length === 0) {
+        queueContainer.innerHTML = '<div class="empty-message"><span class="icon">📭</span>队列为空，请入队元素</div>';
+        return;
+    }
+
+    const display = document.createElement('div');
+    display.className = 'queue-display';
+
+    // FRONT label
+    const frontLabel = document.createElement('span');
+    frontLabel.className = 'queue-label';
+    frontLabel.textContent = 'FRONT →';
+    display.appendChild(frontLabel);
+
+    for (let i = 0; i < arr.length; i++) {
+        const item = document.createElement('div');
+        item.className = 'queue-item';
+        if (i === highlightIdx) item.classList.add('highlight');
+        else if (i === peekIdx) item.classList.add('peeked');
+        item.textContent = arr[i];
+        display.appendChild(item);
+
+        if (i < arr.length - 1) {
+            const arrow = document.createElement('span');
+            arrow.className = 'queue-arrow';
+            arrow.textContent = '→';
+            display.appendChild(arrow);
+        }
+    }
+
+    // REAR label
+    const rearLabel = document.createElement('span');
+    rearLabel.className = 'queue-label';
+    rearLabel.textContent = '← REAR';
+    display.appendChild(rearLabel);
+
+    queueContainer.appendChild(display);
+}
+
+function renderLog() {
+    if (logEntries.length === 0) {
+        logList.innerHTML = '<div class="log-empty">等待操作…</div>';
+        return;
+    }
+    logList.innerHTML = '';
+    const reversed = [...logEntries].reverse();
+    for (const entry of reversed) {
+        const div = document.createElement('div');
+        div.className = 'log-entry';
+
+        const header = document.createElement('div');
+        header.className = 'log-header';
+
+        const badge = document.createElement('span');
+        badge.className = `log-badge badge-${entry.opType}`;
+        badge.textContent = entry.opLabel;
+        header.appendChild(badge);
+
+        if (entry.time) {
+            const time = document.createElement('span');
+            time.className = 'log-time';
+            time.textContent = entry.time;
+            header.appendChild(time);
+        }
+        div.appendChild(header);
+
+        if (entry.code) {
+            const codeBlock = document.createElement('div');
+            codeBlock.className = 'log-code';
+            codeBlock.textContent = entry.code;
+            div.appendChild(codeBlock);
+        }
+        if (entry.result) {
+            const result = document.createElement('div');
+            result.className = `log-result ${entry.resultType || ''}`;
+            result.textContent = entry.result;
+            div.appendChild(result);
+        }
+        logList.appendChild(div);
+    }
+}
+
+function addLog(opType, opLabel, code, result, resultType = '') {
+    const now = new Date();
+    const time = now.toLocaleTimeString('zh-CN', { hour12: false });
+    logEntries.push({ opType, opLabel, code, result, time, resultType });
+    if (logEntries.length > 100) logEntries.shift();
+    saveLog();
+    renderLog();
+}
+
+function updateInfo() {
+    const type = currentType();
+    document.getElementById('infoType').textContent = (type === 'stack') ? '栈 (Stack)' : '队列 (Queue)';
+    document.getElementById('infoSize').textContent = ds.size();
+    document.getElementById('infoTopLabel').textContent = (type === 'stack') ? '栈顶 (Top)' : '队首 (Front)';
+    const topVal = ds.peek();
+    document.getElementById('infoTop').textContent = (topVal !== null && topVal !== undefined) ? topVal : '—';
+}
+
+function refreshAll(highlightIdx = -1, peekIdx = -1) {
+    renderVisual(highlightIdx, peekIdx);
+    updateInfo();
+    saveState();
+}
+
+// ============================
+//  OPERATIONS
+// ============================
+function doPush() {
+    const valInput = document.getElementById('inputValue');
+    const value = parseInt(valInput.value);
+    if (isNaN(value)) { alert('请输入有效的数值'); return; }
+
+    const type = currentType();
+    ds.push(value);
+    const code = generatePushCode(type, value);
+    const label = (type === 'stack') ? '压栈 Push' : '入队 Enqueue';
+    addLog('push', label, code, `✅ 成功添加 ${value}`, 'success');
+
+    const idx = ds.size() - 1;
+    refreshAll(-1, -1);
+    // Highlight the new item after a frame
+    setTimeout(() => {
+        renderVisual(idx, -1);
+        setTimeout(() => refreshAll(), 1200);
+    }, 50);
+}
+
+function doPop() {
+    const type = currentType();
+    if (ds.isEmpty()) {
+        const label = (type === 'stack') ? '弹栈 Pop' : '出队 Dequeue';
+        addLog('pop', label, '', '❌ 为空，无法移除元素', 'fail');
+        renderLog();
+        return;
+    }
+
+    const returned = ds.pop();
+    const code = generatePopCode(type, returned);
+    const label = (type === 'stack') ? '弹栈 Pop' : '出队 Dequeue';
+    addLog('pop', label, code, `✅ 已移除: ${returned}`, 'success');
+    refreshAll();
+}
+
+function doPeek() {
+    const type = currentType();
+    if (ds.isEmpty()) {
+        addLog('peek', '查看 Peek', '', '❌ 为空，无元素可查看', 'fail');
+        renderLog();
+        return;
+    }
+
+    const topVal = ds.peek();
+    const code = generatePeekCode(type, topVal);
+    const label = (type === 'stack') ? '查看栈顶 Peek' : '查看队首 Peek';
+    addLog('peek', label, code, `👁️ 当前值: ${topVal}`, 'success');
+
+    // Highlight the peeked element
+    const peekIdx = (type === 'stack') ? ds.size() - 1 : 0;
+    refreshAll(-1, peekIdx);
+    setTimeout(() => refreshAll(), 2000);
+}
+
+function doRandom() {
+    ds.clear();
+    const type = currentType();
+    const count = type === 'stack' ? 6 : 5;
+    const values = [];
+    for (let i = 0; i < count; i++) {
+        const v = Math.floor(Math.random() * 90) + 10; // 10-99
+        values.push(v);
+        ds.push(v);
+    }
+    const code = generateRandomCode(type, values, count);
+    const label = '随机生成';
+    addLog('random', label, code, `✅ 已创建 ${count} 个元素: [${values.join(', ')}]`, 'success');
+    refreshAll();
+}
+
+function doReset() {
+    ds.clear();
+    addLog('reset', '清空', '', '🗑️ 已清空', '');
+    refreshAll();
+}
+
+function switchType(newType) {
+    const oldType = currentType();
+    if (oldType === newType) return;
+
+    // Save current
+    saveState();
+
+    // Load target
+    const state = loadState(newType);
+    ds = buildDS(newType, state);
+
+    document.querySelectorAll('.type-tab').forEach(t => {
+        t.classList.toggle('active', t.getAttribute('data-type') === newType);
+    });
+
+    const typeNames = { stack: '栈 (Stack)', queue: '队列 (Queue)' };
+    addLog('switch', '切换结构', '', `✅ 已切换为「${typeNames[newType]}」`, 'success');
+    refreshAll();
+}
+
+// ============================
+//  EVENT HANDLERS
+// ============================
+document.getElementById('btnPush').addEventListener('click', doPush);
+document.getElementById('btnPop').addEventListener('click', doPop);
+document.getElementById('btnPeek').addEventListener('click', doPeek);
+document.getElementById('btnRandom').addEventListener('click', doRandom);
+document.getElementById('btnReset').addEventListener('click', doReset);
+document.getElementById('btnClearLog').addEventListener('click', () => {
+    logEntries = [];
+    saveLog();
+    renderLog();
+});
+
+// Type tabs
+document.querySelectorAll('.type-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+        const newType = this.getAttribute('data-type');
+        if (newType === currentType()) return;
+        switchType(newType);
+    });
+});
+
+// Enter key in value input → push/enqueue
+document.getElementById('inputValue').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        doPush();
+    }
+});
+
+// ============================
+//  INITIALIZATION
+// ============================
+function init() {
+    const activeType = localStorage.getItem(ACTIVE_TYPE_KEY) || 'stack';
+    const state = loadState(activeType);
+    ds = buildDS(activeType, state);
+
+    document.querySelectorAll('.type-tab').forEach(t => {
+        t.classList.toggle('active', t.getAttribute('data-type') === activeType);
+    });
+
+    logEntries = loadLog();
+    renderLog();
+    refreshAll();
+}
+
+init();
+</script>
+
+</body>
+</html>
