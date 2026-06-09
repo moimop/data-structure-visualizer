@@ -275,7 +275,7 @@
             overflow-y: visible;
             display: flex;
             align-items: center;
-            padding: 10px 0 50px 0;  /* extra bottom padding for circular arrow */
+            padding: 55px 0 10px 0;  /* extra TOP padding for circular arrow above nodes */
             min-height: 120px;
             position: relative;
         }
@@ -404,18 +404,9 @@
         .circular-path {
             fill: none;
             stroke: #e67e22;
-            stroke-width: 2.8;
+            stroke-width: 2.6;
             stroke-linecap: round;
-            stroke-dasharray: 8 4;
-            animation: dashFlow 0.6s linear infinite;
-        }
-        @keyframes dashFlow {
-            to { stroke-dashoffset: -12; }
-        }
-        .circular-path.few-nodes {
-            stroke-dasharray: none;
-            stroke-width: 3.2;
-            animation: none;
+            stroke-linejoin: round;
         }
         .circular-arrowhead {
             fill: #e67e22;
@@ -1388,19 +1379,19 @@ function renderList(highlightIdx = -1, foundIdxs = []) {
 }
 
 /**
- * Draw a curved SVG arrow from the tail node back to the head node,
- * visually demonstrating the "circular" concept.
+ * Draw a pointer-style SVG polyline ABOVE the nodes:
+ *   tail(right-top) → up → horizontally left → down → head(left-top)
  *
- * Few nodes  → deep arc (more prominent, highlights the loop)
- * Many nodes → shallow arc (compact and natural)
+ * The line never crosses through any node body.
+ * Height above nodes adapts to node count for visual clarity.
  */
 function drawCircularArrow(nodeCount) {
-    const svg = document.getElementById('circularSvg');
-    const path = document.getElementById('circularPath');
+    const svg   = document.getElementById('circularSvg');
+    const path  = document.getElementById('circularPath');
     const label = document.getElementById('circularLabel');
     const container = document.getElementById('listContainer');
 
-    // Collect data nodes only (exclude optional head node)
+    // Data nodes only (skip optional head node)
     const allNodes = document.querySelectorAll('#listDisplay .node-box:not(.head-node)');
     if (allNodes.length === 0) {
         svg.style.display = 'none';
@@ -1411,68 +1402,61 @@ function drawCircularArrow(nodeCount) {
     const lastNode  = allNodes[allNodes.length - 1];
 
     const containerRect = container.getBoundingClientRect();
-
-    // Positions relative to listContainer (account for scrollLeft)
     const scrollLeft = container.scrollLeft;
     const firstRect  = firstNode.getBoundingClientRect();
     const lastRect   = lastNode.getBoundingClientRect();
 
-    // Start point: right edge center of the LAST node
-    const startX = lastRect.right  - containerRect.left + scrollLeft;
-    const startY = lastRect.top + lastRect.height / 2 - containerRect.top;
-    // End point:   left edge center of the FIRST node
-    const endX   = firstRect.left  - containerRect.left + scrollLeft;
-    const endY   = firstRect.top + firstRect.height / 2 - containerRect.top;
+    // Small gap so the line doesn't touch the node frame
+    const GAP = 5;
 
-    // ----- Adaptive curve depth -----
-    let depth;
+    // Start: right-of-center on the TOP edge of the LAST node
+    const startX = lastRect.right  - containerRect.left + scrollLeft - 18;
+    const startY = lastRect.top    - containerRect.top  - GAP;
+
+    // End:   left-of-center on the TOP edge of the FIRST node
+    const endX   = firstRect.left - containerRect.left + scrollLeft + 18;
+    const endY   = firstRect.top  - containerRect.top  - GAP;
+
+    // ----- Adaptive height above the nodes -----
+    let heightAbove;
     if (nodeCount <= 2) {
-        depth = 70;          // 1-2 nodes → deep arc, very visible loop
+        heightAbove = 48;          // 1-2 nodes: taller loop, very clear
     } else if (nodeCount <= 4) {
-        depth = 50;          // 3-4 nodes → moderate
+        heightAbove = 34;          // 3-4 nodes: moderate
     } else {
-        depth = 36;          // 5+ nodes → shallow, compact
+        heightAbove = 24;          // 5+ nodes: compact, close to frames
     }
 
-    // Horizontal midpoint (guide the curve to pass through the middle)
-    const midX = (startX + endX) / 2;
+    const topY = Math.min(startY, endY) - heightAbove;
 
-    // Bezier control points — pull the curve downward
-    const cp1x = midX - (midX - startX) * 0.4;
-    const cp1y = startY + depth;
-    const cp2x = midX + (endX - midX) * 0.4;
-    const cp2y = endY + depth;
-
-    // For single node: make a pronounced self-loop
+    // Build the "⊓"-shaped polyline:  up → across → down
     let d;
     if (nodeCount === 1) {
-        const r = 55;
+        // Single node: self-loop — right side → up → left → down → left side
         d = `M ${startX} ${startY}
-             C ${startX + r} ${startY},
-               ${startX + r} ${startY + depth},
-               ${midX}     ${startY + depth}
-             C ${startX - 10} ${startY + depth},
-               ${endX - 10}   ${endY},
-               ${endX}        ${endY}`;
+             L ${startX} ${topY}
+             L ${endX}   ${topY}
+             L ${endX}   ${endY}`;
     } else {
         d = `M ${startX} ${startY}
-             C ${cp1x} ${cp1y},
-               ${cp2x} ${cp2y},
-               ${endX}   ${endY}`;
-    }
-
-    // Style tweaks for few nodes
-    if (nodeCount <= 2) {
-        path.classList.add('few-nodes');
-    } else {
-        path.classList.remove('few-nodes');
+             L ${startX} ${topY}
+             L ${endX}   ${topY}
+             L ${endX}   ${endY}`;
     }
 
     path.setAttribute('d', d);
 
-    // Position the "循环" label at the bottom of the arc
+    // Label centered above the horizontal segment
+    const midX = (startX + endX) / 2;
     label.setAttribute('x', midX);
-    label.setAttribute('y', startY + depth + 18);
+    label.setAttribute('y', topY - 8);
+
+    // Thicker stroke for few nodes
+    if (nodeCount <= 2) {
+        path.setAttribute('stroke-width', '3.2');
+    } else {
+        path.setAttribute('stroke-width', '2.6');
+    }
 
     svg.style.display = '';
 }
