@@ -254,7 +254,7 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
+            overflow: visible;       /* allow circular SVG arrow to render below */
             min-height: 300px;
         }
         .visual-card .card-header {
@@ -272,11 +272,12 @@
         .list-container {
             flex: 1;
             overflow-x: auto;
-            overflow-y: hidden;
+            overflow-y: visible;
             display: flex;
             align-items: center;
-            padding: 10px 0;
+            padding: 10px 0 50px 0;  /* extra bottom padding for circular arrow */
             min-height: 120px;
+            position: relative;
         }
         .list-display {
             display: flex;
@@ -387,6 +388,43 @@
             font-size: 0.75rem;
             font-weight: 600;
             margin-left: 6px;
+        }
+
+        /* ===== Circular SVG Arrow ===== */
+        .circular-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+            overflow: visible;
+        }
+        .circular-path {
+            fill: none;
+            stroke: #e67e22;
+            stroke-width: 2.8;
+            stroke-linecap: round;
+            stroke-dasharray: 8 4;
+            animation: dashFlow 0.6s linear infinite;
+        }
+        @keyframes dashFlow {
+            to { stroke-dashoffset: -12; }
+        }
+        .circular-path.few-nodes {
+            stroke-dasharray: none;
+            stroke-width: 3.2;
+            animation: none;
+        }
+        .circular-arrowhead {
+            fill: #e67e22;
+        }
+        .circular-label {
+            font-size: 0.7rem;
+            fill: #e67e22;
+            font-weight: 600;
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
         }
 
         /* ===== Log Area ===== */
@@ -579,6 +617,16 @@
                         链表为空，请插入节点
                     </div>
                 </div>
+                <svg class="circular-svg" id="circularSvg" style="display:none;">
+                    <defs>
+                        <marker id="arrowHead" markerWidth="10" markerHeight="8"
+                                refX="9" refY="4" orient="auto-start-reverse" class="circular-arrowhead">
+                            <polygon points="0 0, 10 4, 0 8" />
+                        </marker>
+                    </defs>
+                    <path id="circularPath" class="circular-path" marker-end="url(#arrowHead)" />
+                    <text id="circularLabel" class="circular-label" text-anchor="middle">循环</text>
+                </svg>
             </div>
         </div>
 
@@ -1327,18 +1375,106 @@ function renderList(highlightIdx = -1, foundIdxs = []) {
         nullDiv.className = 'null-symbol';
         nullDiv.textContent = 'NULL';
         fragment.appendChild(nullDiv);
-    } else if (arr.length > 0) {
-        // Circular indicator - arrow back to first
-        const circArrow = document.createElement('div');
-        circArrow.className = 'arrow';
-        circArrow.innerHTML = '↺';
-        circArrow.style.color = '#e67e22';
-        circArrow.style.fontSize = '1.4rem';
-        circArrow.title = '循环回到头部';
-        fragment.appendChild(circArrow);
     }
 
     listDisplay.appendChild(fragment);
+
+    // Draw circular SVG arrow (after DOM renders, so positions are available)
+    if (list.type === 'circular' && arr.length > 0) {
+        requestAnimationFrame(() => drawCircularArrow(arr.length));
+    } else {
+        document.getElementById('circularSvg').style.display = 'none';
+    }
+}
+
+/**
+ * Draw a curved SVG arrow from the tail node back to the head node,
+ * visually demonstrating the "circular" concept.
+ *
+ * Few nodes  → deep arc (more prominent, highlights the loop)
+ * Many nodes → shallow arc (compact and natural)
+ */
+function drawCircularArrow(nodeCount) {
+    const svg = document.getElementById('circularSvg');
+    const path = document.getElementById('circularPath');
+    const label = document.getElementById('circularLabel');
+    const container = document.getElementById('listContainer');
+
+    // Collect data nodes only (exclude optional head node)
+    const allNodes = document.querySelectorAll('#listDisplay .node-box:not(.head-node)');
+    if (allNodes.length === 0) {
+        svg.style.display = 'none';
+        return;
+    }
+
+    const firstNode = allNodes[0];
+    const lastNode  = allNodes[allNodes.length - 1];
+
+    const containerRect = container.getBoundingClientRect();
+
+    // Positions relative to listContainer (account for scrollLeft)
+    const scrollLeft = container.scrollLeft;
+    const firstRect  = firstNode.getBoundingClientRect();
+    const lastRect   = lastNode.getBoundingClientRect();
+
+    // Start point: right edge center of the LAST node
+    const startX = lastRect.right  - containerRect.left + scrollLeft;
+    const startY = lastRect.top + lastRect.height / 2 - containerRect.top;
+    // End point:   left edge center of the FIRST node
+    const endX   = firstRect.left  - containerRect.left + scrollLeft;
+    const endY   = firstRect.top + firstRect.height / 2 - containerRect.top;
+
+    // ----- Adaptive curve depth -----
+    let depth;
+    if (nodeCount <= 2) {
+        depth = 70;          // 1-2 nodes → deep arc, very visible loop
+    } else if (nodeCount <= 4) {
+        depth = 50;          // 3-4 nodes → moderate
+    } else {
+        depth = 36;          // 5+ nodes → shallow, compact
+    }
+
+    // Horizontal midpoint (guide the curve to pass through the middle)
+    const midX = (startX + endX) / 2;
+
+    // Bezier control points — pull the curve downward
+    const cp1x = midX - (midX - startX) * 0.4;
+    const cp1y = startY + depth;
+    const cp2x = midX + (endX - midX) * 0.4;
+    const cp2y = endY + depth;
+
+    // For single node: make a pronounced self-loop
+    let d;
+    if (nodeCount === 1) {
+        const r = 55;
+        d = `M ${startX} ${startY}
+             C ${startX + r} ${startY},
+               ${startX + r} ${startY + depth},
+               ${midX}     ${startY + depth}
+             C ${startX - 10} ${startY + depth},
+               ${endX - 10}   ${endY},
+               ${endX}        ${endY}`;
+    } else {
+        d = `M ${startX} ${startY}
+             C ${cp1x} ${cp1y},
+               ${cp2x} ${cp2y},
+               ${endX}   ${endY}`;
+    }
+
+    // Style tweaks for few nodes
+    if (nodeCount <= 2) {
+        path.classList.add('few-nodes');
+    } else {
+        path.classList.remove('few-nodes');
+    }
+
+    path.setAttribute('d', d);
+
+    // Position the "循环" label at the bottom of the arc
+    label.setAttribute('x', midX);
+    label.setAttribute('y', startY + depth + 18);
+
+    svg.style.display = '';
 }
 
 function renderLog() {
@@ -1682,6 +1818,18 @@ document.addEventListener('keydown', function(e) {
     if (e.ctrlKey && e.key === 'Enter') {
         e.preventDefault();
         doInsertAt();
+    }
+});
+
+// Redraw circular arrow on resize / scroll
+window.addEventListener('resize', () => {
+    if (list.type === 'circular' && list.getSize() > 0) {
+        drawCircularArrow(list.getSize());
+    }
+});
+document.getElementById('listContainer').addEventListener('scroll', () => {
+    if (list.type === 'circular' && list.getSize() > 0) {
+        drawCircularArrow(list.getSize());
     }
 });
 
