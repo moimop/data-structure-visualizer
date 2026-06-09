@@ -275,7 +275,7 @@
             overflow-y: visible;
             display: flex;
             align-items: center;
-            padding: 55px 0 10px 0;  /* extra TOP padding for circular arrow above nodes */
+            padding: 75px 0 10px 0;  /* extra TOP padding for circular arrow above nodes */
             min-height: 120px;
             position: relative;
         }
@@ -403,19 +403,13 @@
         }
         .circular-path {
             fill: none;
-            stroke: #e67e22;
-            stroke-width: 2.6;
+            stroke: #b0b8c1;          /* match normal arrow color */
+            stroke-width: 2;           /* match visual weight of → */
             stroke-linecap: round;
             stroke-linejoin: round;
         }
         .circular-arrowhead {
-            fill: #e67e22;
-        }
-        .circular-label {
-            font-size: 0.7rem;
-            fill: #e67e22;
-            font-weight: 600;
-            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            fill: #b0b8c1;
         }
 
         /* ===== Log Area ===== */
@@ -616,7 +610,6 @@
                         </marker>
                     </defs>
                     <path id="circularPath" class="circular-path" marker-end="url(#arrowHead)" />
-                    <text id="circularLabel" class="circular-label" text-anchor="middle">循环</text>
                 </svg>
             </div>
         </div>
@@ -1388,7 +1381,6 @@ function renderList(highlightIdx = -1, foundIdxs = []) {
 function drawCircularArrow(nodeCount) {
     const svg   = document.getElementById('circularSvg');
     const path  = document.getElementById('circularPath');
-    const label = document.getElementById('circularLabel');
     const container = document.getElementById('listContainer');
 
     // Data nodes only (skip optional head node)
@@ -1406,58 +1398,36 @@ function drawCircularArrow(nodeCount) {
     const firstRect  = firstNode.getBoundingClientRect();
     const lastRect   = lastNode.getBoundingClientRect();
 
-    // Small gap so the line doesn't touch the node frame
-    const GAP = 5;
+    // Gap above node frame so the line never touches the box
+    const GAP = 10;
 
     // Start: right-of-center on the TOP edge of the LAST node
-    const startX = lastRect.right  - containerRect.left + scrollLeft - 18;
+    const startX = lastRect.right  - containerRect.left + scrollLeft - 20;
     const startY = lastRect.top    - containerRect.top  - GAP;
 
     // End:   left-of-center on the TOP edge of the FIRST node
-    const endX   = firstRect.left - containerRect.left + scrollLeft + 18;
+    const endX   = firstRect.left - containerRect.left + scrollLeft + 20;
     const endY   = firstRect.top  - containerRect.top  - GAP;
 
-    // ----- Adaptive height above the nodes -----
+    // ----- Adaptive height above the nodes (lengthened) -----
     let heightAbove;
     if (nodeCount <= 2) {
-        heightAbove = 48;          // 1-2 nodes: taller loop, very clear
+        heightAbove = 60;          // 1-2 nodes: tall, very prominent loop
     } else if (nodeCount <= 4) {
-        heightAbove = 34;          // 3-4 nodes: moderate
+        heightAbove = 46;          // 3-4 nodes: moderate
     } else {
-        heightAbove = 24;          // 5+ nodes: compact, close to frames
+        heightAbove = 34;          // 5+ nodes: still clearly visible
     }
 
     const topY = Math.min(startY, endY) - heightAbove;
 
     // Build the "⊓"-shaped polyline:  up → across → down
-    let d;
-    if (nodeCount === 1) {
-        // Single node: self-loop — right side → up → left → down → left side
-        d = `M ${startX} ${startY}
-             L ${startX} ${topY}
-             L ${endX}   ${topY}
-             L ${endX}   ${endY}`;
-    } else {
-        d = `M ${startX} ${startY}
-             L ${startX} ${topY}
-             L ${endX}   ${topY}
-             L ${endX}   ${endY}`;
-    }
+    const d = `M ${startX} ${startY}
+               L ${startX} ${topY}
+               L ${endX}   ${topY}
+               L ${endX}   ${endY}`;
 
     path.setAttribute('d', d);
-
-    // Label centered above the horizontal segment
-    const midX = (startX + endX) / 2;
-    label.setAttribute('x', midX);
-    label.setAttribute('y', topY - 8);
-
-    // Thicker stroke for few nodes
-    if (nodeCount <= 2) {
-        path.setAttribute('stroke-width', '3.2');
-    } else {
-        path.setAttribute('stroke-width', '2.6');
-    }
-
     svg.style.display = '';
 }
 
@@ -1700,6 +1670,7 @@ function doRandom() {
 
 function doReset() {
     list.clear();
+    document.getElementById('circularSvg').style.display = 'none';  // force-hide arrow
     addLog('reset', '清空链表', '', '🗑️ 链表已清空', '');
     refreshAll();
 }
@@ -1805,17 +1776,16 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// Redraw circular arrow on resize / scroll
-window.addEventListener('resize', () => {
+// Redraw circular arrow on resize / scroll (only when list is non-empty)
+function redrawCircularIfNeeded() {
     if (list.type === 'circular' && list.getSize() > 0) {
         drawCircularArrow(list.getSize());
+    } else {
+        document.getElementById('circularSvg').style.display = 'none';
     }
-});
-document.getElementById('listContainer').addEventListener('scroll', () => {
-    if (list.type === 'circular' && list.getSize() > 0) {
-        drawCircularArrow(list.getSize());
-    }
-});
+}
+window.addEventListener('resize', redrawCircularIfNeeded);
+document.getElementById('listContainer').addEventListener('scroll', redrawCircularIfNeeded);
 
 // Enter key in value input -> insert tail (convenience)
 document.getElementById('inputValue').addEventListener('keydown', function(e) {
